@@ -1,9 +1,11 @@
+import org.gradle.jvm.tasks.Jar
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
-    id("org.jetbrains.dokka") version "1.7.10"
+    id("org.jetbrains.dokka") version "1.8.20"
 }
 
 android {
@@ -46,6 +48,11 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
+    implementation("io.ktor:ktor-client-core:2.3.4")
+    implementation("io.ktor:ktor-client-cio:2.3.4")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.10.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.10.0")
@@ -69,4 +76,30 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+
+tasks.named("dokkaHtml", org.jetbrains.dokka.gradle.DokkaTask::class) {
+    outputDirectory.set(layout.buildDirectory.dir("dokka/html").get().asFile)
+    dokkaSourceSets {
+        named("main") {
+            moduleName.set("FitnessApp")
+            jdkVersion.set(11)
+            sourceRoots.from(file("src/main/java"), file("src/main/kotlin"))
+            perPackageOption {
+                matchingRegex.set("com.example.*")
+                includeNonPublic.set(false)
+            }
+        }
+    }
+}
+
+tasks.named("dokkaJavadoc", org.jetbrains.dokka.gradle.DokkaTask::class) {
+    outputDirectory.set(layout.buildDirectory.dir("dokka/javadoc").get().asFile)
+}
+
+tasks.register<Jar>("dokkaJavadocJar") {
+    dependsOn("dokkaJavadoc")
+    archiveClassifier.set("javadoc")
+    from(layout.buildDirectory.dir("dokka/javadoc").get().asFile)
 }
