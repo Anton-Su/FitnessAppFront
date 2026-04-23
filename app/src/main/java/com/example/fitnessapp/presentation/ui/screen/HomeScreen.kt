@@ -17,7 +17,7 @@ import androidx.navigation.NavHostController
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
 
 /**
- * Главный экран приложения (заглушка).
+ * Главный экран приложения.
  */
 @Composable
 fun HomeScreen(navController: NavHostController, viewModel: FitnessViewModel) {

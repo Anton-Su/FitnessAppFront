@@ -24,13 +24,6 @@ import java.util.Locale
  * - Ведёт внутренний счётчик секунд (Int) и раз в секунду увеличивает его, пока не в паузе.
  * - При каждом тике отправляет Broadcast с action ACTION_TICK и extra EXTRA_SECONDS.
  * - Обновляет foreground notification, чтобы пользователь видел прошедшее время.
- *
- * Регистрация в AndroidManifest.xml:
- * <service android:name=".service.SecondsCounterService" android:exported="false" />
- *
- * Пример управления из Activity:
- * val intent = Intent(this, SecondsCounterService::class.java).apply { action = SecondsCounterService.ACTION_START }
- * if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
  */
 class SecondsCounterService : Service() {
     private val CHANNEL_ID = "seconds_counter_channel"

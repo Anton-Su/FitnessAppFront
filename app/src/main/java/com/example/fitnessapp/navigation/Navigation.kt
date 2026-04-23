@@ -14,6 +14,7 @@ import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
  * Список экранов приложения для навигации.
  */
 sealed class Screen(val route: String) {
+    object AuthChoice : Screen("auth_choice")
     object Registration : Screen("registration")
     object Login : Screen("login")
     object Home : Screen("home")
@@ -32,7 +33,11 @@ sealed class Screen(val route: String) {
  */
 @Composable
 fun Navigation(navController: NavHostController = rememberNavController(), viewModel: FitnessViewModel) {
-    NavHost(navController, startDestination = Screen.Registration.route) {
+    // Используем экран выбора авторизации/регистрации как стартовый
+    NavHost(navController, startDestination = Screen.AuthChoice.route) {
+        composable(Screen.AuthChoice.route) {
+            AuthChoiceScreen(navController = navController, viewModel = viewModel)
+        }
         composable(Screen.Registration.route) {
             RegistrationScreen(navController = navController, viewModel = viewModel)
         }

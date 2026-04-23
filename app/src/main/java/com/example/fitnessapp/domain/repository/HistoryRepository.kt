@@ -20,4 +20,10 @@ interface HistoryRepository {
 
     /** Очищает всю историю. */
     suspend fun clearAll()
+
+    /**
+     * Экспортирует всю историю в JSON строку.
+     * @return JSON-представление списка [HistoryEntity]
+     */
+    suspend fun exportHistoryJson(): String
 }

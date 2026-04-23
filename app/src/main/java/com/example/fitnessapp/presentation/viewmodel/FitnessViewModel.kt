@@ -12,11 +12,13 @@ import com.example.fitnessapp.domain.usecase.InsertHistoryUseCase
 import com.example.fitnessapp.domain.usecase.GetUserSettingsUseCase
 import com.example.fitnessapp.domain.usecase.UpsertUserSettingsUseCase
 import com.example.fitnessapp.domain.usecase.SyncExercisesUseCase
+import com.example.fitnessapp.domain.usecase.ExportHistoryUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * ViewModel верхнего уровня приложения.
@@ -37,6 +39,7 @@ import kotlinx.coroutines.launch
  * @param getUserSettingsUseCase usecase для получения настроек из Room
  * @param upsertUserSettingsUseCase usecase для записи/обновления настроек в Room
  * @param syncExercisesUseCase usecase для синхронизации упражнений с сервером
+ * @param exportHistoryUseCase usecase для экспорта истории в JSON (опционально)
  */
 class FitnessViewModel(
     private val getExercisesUseCase: GetExercisesUseCase,
@@ -46,7 +49,8 @@ class FitnessViewModel(
     private val insertHistoryUseCase: InsertHistoryUseCase,
     private val getUserSettingsUseCase: GetUserSettingsUseCase,
     private val upsertUserSettingsUseCase: UpsertUserSettingsUseCase,
-    private val syncExercisesUseCase: SyncExercisesUseCase? = null
+    private val syncExercisesUseCase: SyncExercisesUseCase? = null,
+    private val exportHistoryUseCase: ExportHistoryUseCase? = null
 ) : ViewModel() {
 
     /**
@@ -192,6 +196,32 @@ class FitnessViewModel(
             } catch (_: Exception) {
                 // ignore for now or handle
             }
+        }
+    }
+
+    /**
+     * Экспортирует историю в JSON строку. Возвращает null, если usecase не передан.
+     * Можно вызывать из coroutine scope.
+     */
+    suspend fun exportHistoryJson(): String? {
+        return exportHistoryUseCase?.invoke()
+    }
+
+    /**
+     * Экспортирует историю и записывает JSON в файл по указанному пути.
+     * Возвращает true при успехе.
+     *
+     * Важно: [filePath] должен быть доступен для записи приложению (проверьте разрешения).
+     */
+    suspend fun exportHistoryToFile(filePath: String): Boolean {
+        val json = exportHistoryUseCase?.invoke() ?: return false
+        return try {
+            val file = File(filePath)
+            file.parentFile?.mkdirs()
+            file.writeText(json)
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 }

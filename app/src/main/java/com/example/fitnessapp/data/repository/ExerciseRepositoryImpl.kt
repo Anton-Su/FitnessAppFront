@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /**
- * Временная репозитория упражнений для примера и разработки..
+ * Временный репозиторий упражнений для разработки.
  */
 class ExerciseRepositoryImpl : ExerciseRepository {
     private val sample = listOf(
