@@ -142,7 +142,7 @@ class FitnessViewModel(
         }
     }
 
-    fun registerUser(firstName: String, email: String, age: Int, password: String) {
+    fun registerUser(firstName: String, email: String, age: Int, password: String, height: Double, weight: Double) {
         val repo = authRepository ?: return
         viewModelScope.launch(Dispatchers.IO) {
             _registrationState.value = AuthUiState.Loading
@@ -153,6 +153,8 @@ class FitnessViewModel(
                         settingsDataStore.setEmail(email)
                         settingsDataStore.setAge(age)
                         settingsDataStore.setPassword(password)
+                        settingsDataStore.setHeight(height)
+                        settingsDataStore.setWeight(weight)
                         AuthUiState.Success("Регистрация завершена")
                     },
                     onFailure = { AuthUiState.Error(it.message ?: "Попробуйте снова") }

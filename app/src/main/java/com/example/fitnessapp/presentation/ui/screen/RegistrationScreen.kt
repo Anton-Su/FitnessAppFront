@@ -50,6 +50,8 @@ fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewM
     var email by rememberSaveable(savedEmail) { mutableStateOf(savedEmail) }
     var age by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var height by rememberSaveable { mutableStateOf("") }
+    var weight by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(registrationState) {
         if (registrationState is AuthUiState.Success || registrationState is AuthUiState.Error) {
@@ -150,18 +152,36 @@ fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewM
             visualTransformation = PasswordVisualTransformation()
         )
 
+        OutlinedTextField(
+            value = height,
+            onValueChange = { height = it.filter { c -> c.isDigit() || c == '.' }.take(5) },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Рост (см)") },
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = weight,
+            onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' }.take(5) },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Вес (кг)") },
+            singleLine = true
+        )
+
         Button(
             onClick = {
                 viewModel.registerUser(
                     firstName = firstName.trim(),
                     email = email.trim(),
                     age = age.toIntOrNull() ?: 0,
-                    password = password
+                    password = password,
+                    height = height.toDoubleOrNull() ?: 0.0,
+                    weight = weight.toDoubleOrNull() ?: 0.0
                 )
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
-            enabled = firstName.isNotBlank() && email.isNotBlank() && age.isNotBlank() && password.isNotBlank() && registrationState !is AuthUiState.Loading,
+            enabled = firstName.isNotBlank() && email.isNotBlank() && age.isNotBlank() && password.isNotBlank() && height.isNotBlank() && weight.isNotBlank() && registrationState !is AuthUiState.Loading,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text(text = if (registrationState is AuthUiState.Loading) "Отправляем..." else "Я сделал это!")
