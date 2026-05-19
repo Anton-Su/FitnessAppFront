@@ -13,8 +13,10 @@ import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.ListenableWorker
+import com.example.fitnessapp.data.preferences.SettingsDataStore
 import com.example.fitnessapp.MainActivity
 import com.example.fitnessapp.R
+import kotlinx.coroutines.flow.first
 
 /**
  * WorkManager worker, который отправляет уведомление пользователю.
@@ -33,6 +35,12 @@ class NotificationWorker(
     override suspend fun doWork(): ListenableWorker.Result {
         try {
             createNotificationChannel()
+
+            val settings = SettingsDataStore(ctx)
+            val isActive = settings.statusActiveFlow.first()
+            if (!isActive) {
+                return Result.success()
+            }
 
             val canPost = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED

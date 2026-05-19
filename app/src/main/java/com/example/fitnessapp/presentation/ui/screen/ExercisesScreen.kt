@@ -1,6 +1,7 @@
 package com.example.fitnessapp.presentation.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,11 +43,11 @@ fun ExercisesScreen(navController: NavHostController, viewModel: FitnessViewMode
     val filteredExercises by viewModel.filteredExercises.collectAsState()
     val scrollState = rememberScrollState()
 
-    var selectedType by remember { mutableStateOf("все") }
+    var selectedType by remember { mutableStateOf("Всё") }
     var isFiltering by remember { mutableStateOf(false) }
     var expandedTypeMenu by remember { mutableStateOf(false) }
 
-    val exerciseTypes = listOf("все", "кардио", "силовая", "растяжка", "баланс", "йога")
+    val exerciseTypes = listOf("Всё", "кардио", "силовая", "растяжка", "баланс", "йога")
     val displayedExercises = if (isFiltering) filteredExercises else exercises
 
     Column(
@@ -75,17 +76,34 @@ fun ExercisesScreen(navController: NavHostController, viewModel: FitnessViewMode
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedButton(
-                onClick = { expandedTypeMenu = true },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(selectedType)
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedButton(
+                    onClick = { expandedTypeMenu = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(selectedType)
+                }
+
+                DropdownMenu(
+                    expanded = expandedTypeMenu,
+                    onDismissRequest = { expandedTypeMenu = false }
+                ) {
+                    exerciseTypes.forEach { type ->
+                        DropdownMenuItem(
+                            text = { Text(type) },
+                            onClick = {
+                                selectedType = type
+                                expandedTypeMenu = false
+                            }
+                        )
+                    }
+                }
             }
 
             Button(
                 onClick = {
-                    if (selectedType == "все") {
+                    if (selectedType == "Всё") {
                         isFiltering = false
                     } else {
                         viewModel.filterExercisesByType(selectedType)
@@ -96,21 +114,6 @@ fun ExercisesScreen(navController: NavHostController, viewModel: FitnessViewMode
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Фильтр")
-            }
-
-            DropdownMenu(
-                expanded = expandedTypeMenu,
-                onDismissRequest = { expandedTypeMenu = false }
-            ) {
-                exerciseTypes.forEach { type ->
-                    DropdownMenuItem(
-                        text = { Text(type) },
-                        onClick = {
-                            selectedType = type
-                            expandedTypeMenu = false
-                        }
-                    )
-                }
             }
         }
 

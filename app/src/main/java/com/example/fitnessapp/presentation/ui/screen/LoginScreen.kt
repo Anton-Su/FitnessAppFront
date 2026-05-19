@@ -50,7 +50,7 @@ fun LoginScreen(navController: NavHostController, viewModel: FitnessViewModel) {
         }
 
 
-        TODO("Temporary bypass for testing navigation, remove '|| true' in production, Убрать условие true после тестирования")
+        // TODO("Temporary bypass for testing navigation, remove '|| true' in production, Убрать условие true после тестирования")
 
         if (loginState is AuthUiState.Success || true) {
             delay(2000)
