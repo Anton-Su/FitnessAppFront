@@ -76,6 +76,9 @@ class SecondsCounterService : Service() {
     private fun startCounting() {
         seconds = 0
         isRunning = true
+        sendSecondsTick()
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(NOTIF_ID, buildNotification(seconds))
     }
 
     private fun pauseCounting() {
@@ -84,6 +87,11 @@ class SecondsCounterService : Service() {
 
     private fun resumeCounting() {
         isRunning = true
+    }
+
+    private fun sendSecondsTick() {
+        val tick = Intent(ACTION_TICK).apply { putExtra(EXTRA_SECONDS, seconds) }
+        sendBroadcast(tick)
     }
 
     private fun buildNotification(seconds: Int): Notification {

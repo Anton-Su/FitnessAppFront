@@ -16,8 +16,15 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.example.fitnessapp.data.preferences.SettingsDataStore
 import com.example.fitnessapp.MainActivity
 import com.example.fitnessapp.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /**
  * Foreground Service для подсчёта шагов с использованием сенсора шагомера устройства.
@@ -25,21 +32,30 @@ import com.example.fitnessapp.R
 class StepCounterService : Service(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
-    private var baseStepCount: Float? = null
+    private lateinit var settingsDataStore: SettingsDataStore
+    private val serviceJob = Job()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
+    private var baseStepCount: Double? = null
+    private var currentSteps: Int = 0
+    private var currentDay: String = LocalDate.now().toString()
+    private var isDetectorSensor: Boolean = false
 
     private val CHANNEL_ID = "step_counter_channel"
     private val NOTIF_ID = 1001
 
     override fun onCreate() {
         super.onCreate()
+        settingsDataStore = SettingsDataStore(applicationContext)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) ?: sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+        isDetectorSensor = stepSensor?.type == Sensor.TYPE_STEP_DETECTOR
 
         createNotificationChannel()
         startForeground(NOTIF_ID, buildNotification(0))
 
-        stepSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+        serviceScope.launch {
+            currentSteps = settingsDataStore.stepsFlow.first()
+            stepSensor?.let { sensorManager.registerListener(this@StepCounterService, it, SensorManager.SENSOR_DELAY_NORMAL) }
         }
     }
 
@@ -53,28 +69,44 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onDestroy() {
         super.onDestroy()
         sensorManager.unregisterListener(this)
+        serviceJob.cancel()
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event == null) return
 
-        val value = event.values?.getOrNull(0) ?: return
-        if (baseStepCount == null) {
-            baseStepCount = value
-        }
-        val stepsSinceStart = (value - (baseStepCount ?: value)).toInt()
+        val value = event.values.getOrNull(0)?.toDouble() ?: return
 
-        // Обновляем уведомление с текущим количеством шагов
-        val notif = buildNotification(stepsSinceStart)
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        serviceScope.launch {
+            val today = LocalDate.now().toString()
 
-        // Проверяем разрешение POST_NOTIFICATIONS для Android 13+
-        val canPostNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        } else true
+            if (currentDay != today) {
+                currentDay = today
+                currentSteps = 0
+                settingsDataStore.setSteps(0)
+                baseStepCount = null
+            }
 
-        if (canPostNotifications) {
-            nm.notify(NOTIF_ID, notif)
+            val newSteps = if (isDetectorSensor) {
+                (currentSteps + 1).coerceAtLeast(0)
+            } else {
+                val base = baseStepCount ?: (value - currentSteps).also { baseStepCount = it }
+                (value - base).toInt().coerceAtLeast(0)
+            }
+
+            currentSteps = newSteps
+            settingsDataStore.setSteps(currentSteps)
+
+            val notif = buildNotification(currentSteps)
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            val canPostNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(this@StepCounterService, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            } else true
+
+            if (canPostNotifications) {
+                nm.notify(NOTIF_ID, notif)
+            }
         }
     }
 

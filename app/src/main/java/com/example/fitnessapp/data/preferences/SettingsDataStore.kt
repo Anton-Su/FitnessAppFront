@@ -30,6 +30,11 @@ class SettingsDataStore(private val context: Context) {
         val AGE = intPreferencesKey("age")
         /** Ключ для хранения имени пользователя (String). */
         val NAME = stringPreferencesKey("name")
+        /** Ключ для хранения фамилии пользователя (String). */
+        /** Ключ для хранения email пользователя (String). */
+        val EMAIL = stringPreferencesKey("email")
+        /** Ключ для хранения пароля пользователя (String). */
+        val PASSWORD = stringPreferencesKey("password")
         /** Ключ для хранения роста пользователя (Double).
          *  Хранит дробное значение в сантиметрах.
          */
@@ -41,6 +46,8 @@ class SettingsDataStore(private val context: Context) {
         val STATUS_ACTIVE = booleanPreferencesKey("status_active")
         /** Ключ для хранения числовой цели (Int) — сколько кг пользователь хочет сбросить. */
         val GOAL = intPreferencesKey("goal")
+        /** Ключ для хранения текущего количества шагов за день. */
+        val STEPS = intPreferencesKey("steps")
     }
 
     /**
@@ -57,6 +64,23 @@ class SettingsDataStore(private val context: Context) {
     val nameFlow: Flow<String> = context.dataStore.data
         .map { prefs: Preferences ->
             prefs[NAME] ?: ""
+        }
+
+    /**
+     * Поток с текущим email пользователя (String). По умолчанию пустая строка.
+     */
+    val emailFlow: Flow<String> = context.dataStore.data
+        .map { prefs: Preferences ->
+            prefs[EMAIL] ?: ""
+        }
+
+    /**
+     * Поток с текущим паролем пользователя (String). По умолчанию пустая строка.
+     * Примечание: пароль обычно не хранится в защищённых приложениях, но может быть полезен для кеша поля формы.
+     */
+    val passwordFlow: Flow<String> = context.dataStore.data
+        .map { prefs: Preferences ->
+            prefs[PASSWORD] ?: ""
         }
 
     /**
@@ -93,6 +117,14 @@ class SettingsDataStore(private val context: Context) {
         }
 
     /**
+     * Поток с текущим количеством шагов за день. По умолчанию 0.
+     */
+    val stepsFlow: Flow<Int> = context.dataStore.data
+        .map { prefs: Preferences ->
+            prefs[STEPS] ?: 0
+        }
+
+    /**
      * Записать возраст пользователя.
      *
      * @param value значение возраста (Int).
@@ -111,6 +143,24 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setName(value: String) {
         context.dataStore.edit { prefs: MutablePreferences ->
             prefs[NAME] = value
+        }
+    }
+
+    /**
+     * Записать email пользователя.
+     */
+    suspend fun setEmail(value: String) {
+        context.dataStore.edit { prefs: MutablePreferences ->
+            prefs[EMAIL] = value
+        }
+    }
+
+    /**
+     * Записать пароль пользователя.
+     */
+    suspend fun setPassword(value: String) {
+        context.dataStore.edit { prefs: MutablePreferences ->
+            prefs[PASSWORD] = value
         }
     }
 
@@ -157,4 +207,14 @@ class SettingsDataStore(private val context: Context) {
             prefs[GOAL] = value
         }
     }
+
+    /**
+     * Записать текущее количество шагов за день.
+     */
+    suspend fun setSteps(value: Int) {
+        context.dataStore.edit { prefs: MutablePreferences ->
+            prefs[STEPS] = value
+        }
+    }
+
 }

@@ -32,12 +32,14 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
     // Для корректного использования StateFlow в Compose нужно собрать их как State через collectAsState()
     val age by viewModel.age.collectAsState()
     val name by viewModel.name.collectAsState()
+    val email by viewModel.email.collectAsState()
     val height by viewModel.height.collectAsState()
     val weight by viewModel.weight.collectAsState()
     val statusActive by viewModel.statusActive.collectAsState()
     val goal by viewModel.goal.collectAsState()
 
     var nameInput by remember { mutableStateOf(name) }
+    var emailInput by remember { mutableStateOf(email) }
     var ageInput by remember { mutableStateOf(age.toString()) }
     var heightInput by remember { mutableStateOf(height.toString()) }
     var weightInput by remember { mutableStateOf(weight.toString()) }
@@ -50,11 +52,14 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Настройки профиля", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "Твоё зеркало души", style = MaterialTheme.typography.headlineMedium)
 
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("Имя") })
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(value = emailInput, onValueChange = { emailInput = it }, label = { Text("Email") })
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(value = ageInput, onValueChange = { ageInput = it }, label = { Text("Возраст") })
@@ -78,6 +83,7 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
         Button(onClick = {
             // Применяем изменения: парсим и записываем
             viewModel.setName(nameInput)
+            viewModel.setEmail(emailInput)
             val a = ageInput.toIntOrNull() ?: age
             viewModel.setAge(a)
             val h = heightInput.toDoubleOrNull() ?: height
@@ -86,6 +92,15 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
             viewModel.setWeight(w)
             val g = goalInput.toIntOrNull() ?: goal
             viewModel.setGoal(g)
+            // Отправляем обновление на сервер
+            viewModel.updateUserProfile(
+                name = nameInput,
+                email = emailInput,
+                age = a,
+                height = h,
+                weight = w,
+                goal = g
+            )
         }) {
             Text("Сохранить")
         }
@@ -94,6 +109,18 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
 
         Button(onClick = { navController.navigate("home") }) {
             Text("Назад на главную")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(onClick = {
+            viewModel.logout()
+            navController.navigate("auth_choice") {
+                popUpTo("auth_choice") { inclusive = false }
+                launchSingleTop = true
+            }
+        }) {
+            Text("Выйти")
         }
     }
 }

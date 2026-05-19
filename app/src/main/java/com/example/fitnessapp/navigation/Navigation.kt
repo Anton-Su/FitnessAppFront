@@ -8,6 +8,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.fitnessapp.presentation.ui.screen.*
+import com.example.fitnessapp.presentation.ui.screen.AuthChoiceScreen
+import com.example.fitnessapp.presentation.ui.screen.ExerciseDetailScreen
+import com.example.fitnessapp.presentation.ui.screen.ExercisesScreen
+import com.example.fitnessapp.presentation.ui.screen.HomeScreen
+import com.example.fitnessapp.presentation.ui.screen.LoginScreen
+import com.example.fitnessapp.presentation.ui.screen.RegistrationScreen
+import com.example.fitnessapp.presentation.ui.screen.SettingsScreen
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
 
 /**
@@ -55,7 +62,11 @@ fun Navigation(navController: NavHostController = rememberNavController(), viewM
             arguments = listOf(navArgument("exerciseId") { type = NavType.IntType })
         ) { backStackEntry ->
             val exerciseId = backStackEntry.arguments?.getInt("exerciseId") ?: -1
-            ExerciseDetailScreen(navController = navController, exerciseId = exerciseId, viewModel = viewModel)
+            ExerciseDetailScreen(
+                navController = navController,
+                exerciseId = exerciseId,
+                viewModel = viewModel
+            )
         }
         composable(Screen.ActivityCalendar.route) {
             ActivityCalendarScreen(navController = navController, viewModel = viewModel)

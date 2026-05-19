@@ -1,5 +1,7 @@
 package com.example.fitnessapp.data.remote.dto
 
+import com.example.fitnessapp.domain.model.Exercise
+
 /**
  * DTO — переносимый объект упражнения, получаемый с удалённого сервера.
  *
@@ -19,3 +21,12 @@ data class ExerciseDto(
     val videoUrl: String,
     val type: String
 )
+
+fun ExerciseDto.toDomain(): Exercise = Exercise(
+    id = id,
+    title = title,
+    description = description,
+    videoUrl = videoUrl,
+    type = type
+)
+
