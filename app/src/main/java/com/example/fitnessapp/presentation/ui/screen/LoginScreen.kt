@@ -48,6 +48,10 @@ fun LoginScreen(navController: NavHostController, viewModel: FitnessViewModel) {
         if (loginState is AuthUiState.Success || loginState is AuthUiState.Error) {
             // Scroll to top or add visual feedback if needed
         }
+
+
+        TODO("Temporary bypass for testing navigation, remove '|| true' in production, Убрать условие true после тестирования")
+
         if (loginState is AuthUiState.Success || true) {
             delay(2000)
             viewModel.resetLoginState()
