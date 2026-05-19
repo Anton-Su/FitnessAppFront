@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 val Context.tokenDataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_tokens")
 
@@ -20,7 +21,13 @@ class TokenManager(private val context: Context) {
         cachedAccessToken = prefs[ACCESS_TOKEN]
     }
 
-    fun getAccessToken(): String? = cachedAccessToken
+    fun getAccessToken(): String? {
+        cachedAccessToken?.let { return it }
+        return runBlocking {
+            val prefs = context.tokenDataStore.data.first()
+            prefs[ACCESS_TOKEN].also { cachedAccessToken = it }
+        }
+    }
 
     suspend fun saveAccessToken(token: String) {
         cachedAccessToken = token

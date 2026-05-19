@@ -9,7 +9,6 @@ import com.example.fitnessapp.data.remote.dto.UsersResponse
 import com.example.fitnessapp.data.remote.dto.ExerciseDto
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -38,16 +37,15 @@ interface AutorizeApiRetrofit {
         @Path("id") id: Int
     ): UserDto
 
-    @POST("callories")
+    @POST("users/{id}/callories")
     suspend fun postCalories(
-        @Header("Authorization") token: String,
+        @Path("id") id: Int,
         @Body request: CaloriesRequest
     ): ResponseBody
 
     @PUT("users/{id}")
     suspend fun updateUser(
         @Path("id") id: Int,
-        @Header("Authorization") token: String,
         @Body request: UserDto
     ): UserDto
 

@@ -24,6 +24,7 @@ class CaloriesUploadWorker(
     override suspend fun doWork(): Result {
         val settings = SettingsDataStore(applicationContext)
         val tokenManager = TokenManager(applicationContext)
+        RetrofitClient.init(applicationContext)
 
         return try {
             tokenManager.loadTokens()
@@ -33,10 +34,16 @@ class CaloriesUploadWorker(
             }
 
             val steps = settings.stepsFlow.first().coerceAtLeast(0)
+            val userId = settings.userIdFlow.first().coerceAtLeast(0)
             val calories = maxOf(0, (steps * 0.04).roundToInt())
 
+            if (userId <= 0) {
+                Log.e(TAG, "Skip calories upload: userId is not set")
+                return Result.success()
+            }
+
             RetrofitClient.authApi.postCalories(
-                token = if (token.startsWith("Bearer ")) token else "Bearer $token",
+                id = userId,
                 request = CaloriesRequest(
                     steps = steps,
                     calories = calories,

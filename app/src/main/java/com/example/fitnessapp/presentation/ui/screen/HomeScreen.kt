@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -36,6 +37,7 @@ import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
 fun HomeScreen(navController: NavHostController, viewModel: FitnessViewModel) {
     val scrollState = rememberScrollState()
     val userName = viewModel.name.collectAsState().value.trim()
+    val userId = viewModel.userId.collectAsState().value
     val stepsToday = viewModel.stepsToday.collectAsState().value
     val height = viewModel.height.collectAsState().value
     val weight = viewModel.weight.collectAsState().value
@@ -64,6 +66,12 @@ fun HomeScreen(navController: NavHostController, viewModel: FitnessViewModel) {
     }
 
     val greeting = if (userName.isBlank()) "Чертила, мы тебе не рады" else "Привет, $userName"
+
+    LaunchedEffect(userId) {
+        if (userId > 0) {
+            viewModel.loadRecommendation(userId)
+        }
+    }
 
     Column(
         modifier = Modifier

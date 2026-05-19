@@ -30,6 +30,8 @@ class SettingsDataStore(private val context: Context) {
         val AGE = intPreferencesKey("age")
         /** Ключ для хранения имени пользователя (String). */
         val NAME = stringPreferencesKey("name")
+        /** Ключ для хранения идентификатора пользователя (Int). */
+        val USER_ID = intPreferencesKey("user_id")
         /** Ключ для хранения фамилии пользователя (String). */
         /** Ключ для хранения email пользователя (String). */
         val EMAIL = stringPreferencesKey("email")
@@ -64,6 +66,14 @@ class SettingsDataStore(private val context: Context) {
     val nameFlow: Flow<String> = context.dataStore.data
         .map { prefs: Preferences ->
             prefs[NAME] ?: ""
+        }
+
+    /**
+     * Поток с идентификатором пользователя. По умолчанию 0.
+     */
+    val userIdFlow: Flow<Int> = context.dataStore.data
+        .map { prefs: Preferences ->
+            prefs[USER_ID] ?: 0
         }
 
     /**
@@ -143,6 +153,15 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setName(value: String) {
         context.dataStore.edit { prefs: MutablePreferences ->
             prefs[NAME] = value
+        }
+    }
+
+    /**
+     * Записать идентификатор пользователя.
+     */
+    suspend fun setUserId(value: Int) {
+        context.dataStore.edit { prefs: MutablePreferences ->
+            prefs[USER_ID] = value
         }
     }
 

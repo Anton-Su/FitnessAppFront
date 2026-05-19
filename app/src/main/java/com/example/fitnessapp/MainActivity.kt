@@ -56,6 +56,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        RetrofitClient.init(applicationContext)
+
         val settingsDataStore = SettingsDataStore(applicationContext)
         val tokenManager = TokenManager(applicationContext)
 

@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -78,6 +79,9 @@ class FitnessViewModel(
     val name: StateFlow<String> = settingsDataStore.nameFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
+    val userId: StateFlow<Int> = settingsDataStore.userIdFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
     val email: StateFlow<String> = settingsDataStore.emailFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
@@ -104,6 +108,7 @@ class FitnessViewModel(
 
     fun setAge(value: Int) = viewModelScope.launch { settingsDataStore.setAge(value) }
     fun setName(value: String) = viewModelScope.launch { settingsDataStore.setName(value) }
+    fun setUserId(value: Int) = viewModelScope.launch { settingsDataStore.setUserId(value) }
     fun setEmail(value: String) = viewModelScope.launch { settingsDataStore.setEmail(value) }
     fun setHeight(value: Double) = viewModelScope.launch { settingsDataStore.setHeight(value) }
     fun setWeight(value: Double) = viewModelScope.launch { settingsDataStore.setWeight(value) }
@@ -122,9 +127,32 @@ class FitnessViewModel(
         val repo = authRepository ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Здесь можно добавить логику отправки на сервер если нужен PUT запрос
-                // Пока просто логируем
-                Log.d(TAG, "updateUserProfile: name=$name, email=$email, age=$age, height=$height, weight=$weight, goal=$goal")
+                val userId = settingsDataStore.userIdFlow.first()
+                val password = settingsDataStore.passwordFlow.first()
+                if (userId <= 0) {
+                    Log.e(TAG, "updateUserProfile skipped: userId is not set")
+                    return@launch
+                }
+
+                repo.updateUserProfile(
+                    userId = userId,
+                    firstName = name,
+                    email = email,
+                    age = age,
+                    height = height,
+                    weight = weight,
+                    password = password
+                ).fold(
+                    onSuccess = {
+                        settingsDataStore.setName(name)
+                        settingsDataStore.setEmail(email)
+                        settingsDataStore.setAge(age)
+                        settingsDataStore.setHeight(height)
+                        settingsDataStore.setWeight(weight)
+                        settingsDataStore.setGoal(goal)
+                    },
+                    onFailure = { Log.e(TAG, "updateUserProfile failed", it) }
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "updateUserProfile failed", e)
             }
@@ -155,6 +183,7 @@ class FitnessViewModel(
                         settingsDataStore.setPassword(password)
                         settingsDataStore.setHeight(height)
                         settingsDataStore.setWeight(weight)
+                        settingsDataStore.setUserId(it)
                         AuthUiState.Success("Регистрация завершена")
                     },
                     onFailure = { AuthUiState.Error(it.message ?: "Попробуйте снова") }
@@ -175,6 +204,7 @@ class FitnessViewModel(
                     onSuccess = {
                         settingsDataStore.setEmail(email)
                         settingsDataStore.setPassword(password)
+                        settingsDataStore.setUserId(it)
                         AuthUiState.Success("Авторизация успешна")
                     },
                     onFailure = { AuthUiState.Error(it.message ?: "Не удалось авторизоваться") }
