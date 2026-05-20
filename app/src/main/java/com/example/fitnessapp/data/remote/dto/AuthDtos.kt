@@ -40,6 +40,7 @@ data class UsersResponse(
     val limit: Int = 0
 )
 
+
 /**
  * Тело запроса на отправку калорий.
  */
@@ -48,4 +49,16 @@ data class CaloriesRequest(
     val calories: Int,
     val date: String
 )
+
+
+/**
+ * DTO для записи истории активности (при получении с сервера).
+ */
+data class HistoryDto(
+    val id: Long = 0,
+    val date: String = "",
+    val calories: Int = 0,
+    val steps: Int = 0
+)
+
 

@@ -14,5 +14,7 @@ data class Exercise(
     val title: String,
     val description: String,
     val videoUrl: String,
-    val type: String
+    val type: String,
+    /** Примерная энергия, сожжённая при выполнении этого упражнения (в килокалориях). По умолчанию 0.0 */
+    val caloriesBurnt: Double = 0.0
 )

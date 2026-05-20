@@ -21,7 +21,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.fitnessapp.data.local.entity.UserSettingsEntity
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.example.fitnessapp.data.remote.RetrofitClient
+import com.example.fitnessapp.data.preferences.TokenManager
+import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Экран настроек пользователя.
@@ -101,6 +110,19 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
                 weight = w,
                 goal = g
             )
+            viewModel.upsertUserSettings(
+                UserSettingsEntity(
+                    id = 0,
+                    userId = viewModel.userId.value,
+                    age = a,
+                    name = nameInput,
+                    email = emailInput,
+                    height = h,
+                    weight = w,
+                    statusActive = statusActive,
+                    goal = g
+                )
+            )
         }) {
             Text("Сохранить")
         }
@@ -121,6 +143,50 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
             }
         }) {
             Text("Выйти")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Кнопка экспорта истории: сначала пытаемся получить с сервера, при ошибке — локальная экспортная функция
+        val coroutineScope = rememberCoroutineScope()
+        val context = LocalContext.current
+        Button(onClick = {
+            coroutineScope.launch {
+                // попытка скачать с сервера
+                val userId = viewModel.userId.value
+                var exported = false
+                if (userId > 0) {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            RetrofitClient.init(context)
+                            val tokenManager = TokenManager(context)
+                            tokenManager.loadTokens()
+                            val remote = RetrofitClient.authApi.getHistory(userId)
+                            val json = Gson().toJson(remote)
+                            val file = java.io.File(context.cacheDir, "history_export.json")
+                            file.writeText(json)
+                            exported = true
+                        }
+                    } catch (e: Exception) {
+                        // сервер недоступен — упадём в локальный путь
+                    }
+                }
+
+                if (!exported) {
+                    // локальный экспорт
+                    val path = java.io.File(context.filesDir, "history_export.json").absolutePath
+                    exported = viewModel.exportHistoryToFile(path)
+                }
+
+                // Небольшая обратная связь в логах (можно заменить на Snackbar/Toast)
+                if (exported) {
+                    android.util.Log.i("SettingsScreen", "History exported to files")
+                } else {
+                    android.util.Log.e("SettingsScreen", "History export failed")
+                }
+            }
+        }) {
+            Text("Export to JSON")
         }
     }
 }

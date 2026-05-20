@@ -9,14 +9,20 @@ import androidx.room.PrimaryKey
  */
 @Entity(tableName = "user_settings")
 data class UserSettingsEntity(
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey
     val id: Long = 0,
+
+    @ColumnInfo(name = "user_id")
+    val userId: Int = 0,
 
     @ColumnInfo(name = "age")
     val age: Int,
 
     @ColumnInfo(name = "name")
     val name: String,
+
+    @ColumnInfo(name = "email")
+    val email: String,
 
     @ColumnInfo(name = "height")
     val height: Double,

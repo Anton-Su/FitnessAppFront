@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,9 +52,11 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
     val scrollState = rememberScrollState()
     var expandFraction by remember { mutableFloatStateOf(0.15f) }
     val now = LocalDate.now()
-    val month = YearMonth.from(now)
-    val activeDates = history.mapNotNull { runCatching { LocalDate.parse(it.date) }.getOrNull() }.toSet()
-    val currentWeekStart = now.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    var selectedMonth by remember { mutableStateOf(YearMonth.from(now)) }
+    val caloriesByDate = history.mapNotNull { runCatching { LocalDate.parse(it.date) to it.calories }.getOrNull() }.toMap()
+    val activeDates = caloriesByDate.keys
+    val selectedDay = if (now.year == selectedMonth.year && now.month == selectedMonth.month) now else selectedMonth.atDay(1)
+    val currentWeekStart = selectedDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val currentWeek = (0..6).map { currentWeekStart.plusDays(it.toLong()) }
 
     Column(
@@ -69,6 +73,18 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
                 fontWeight = FontWeight.ExtraBold
             )
         )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { selectedMonth = selectedMonth.minusMonths(1) },
+                modifier = Modifier.weight(1f)
+            ) { Text("←") }
+
+            Button(
+                onClick = { selectedMonth = selectedMonth.plusMonths(1) },
+                modifier = Modifier.weight(1f)
+            ) { Text("→") }
+        }
 
         Card(
             modifier = Modifier
@@ -94,7 +110,7 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
                 )
 
                 Text(
-                    text = month.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()) + " ${month.year}",
+                    text = selectedMonth.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()) + " ${selectedMonth.year}",
                     style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold)
                 )
 
@@ -110,13 +126,14 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
                             DayChip(
                                 day = day,
                                 active = day in activeDates,
-                                selected = day == now,
+                                selected = day == selectedDay,
+                                calories = caloriesByDate[day],
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
                 } else {
-                    val firstDayOfMonth = month.atDay(1)
+                    val firstDayOfMonth = selectedMonth.atDay(1)
                     val start = firstDayOfMonth.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                     val days = (0 until 42).map { start.plusDays(it.toLong()) }
 
@@ -124,13 +141,14 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
                         days.chunked(7).forEach { week ->
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                                 week.forEach { day ->
-                                    DayCell(
-                                        day = day,
-                                        currentMonth = day.month == month.month,
-                                        active = day in activeDates,
-                                        selected = day == now,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                        DayCell(
+                                            day = day,
+                                            currentMonth = day.month == selectedMonth.month,
+                                            active = day in activeDates,
+                                            selected = day == selectedDay,
+                                            calories = caloriesByDate[day],
+                                            modifier = Modifier.weight(1f)
+                                        )
                                 }
                             }
                         }
@@ -141,13 +159,8 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
             }
         }
 
-//        Text(
-//            text = "Потяни календарь вниз — он раскроется в полный месяц.",
-//            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif)
-//        )
-
         Text(
-            text = "Активных дней в этом месяце: ${activeDates.count { it.year == now.year && it.month == now.month }}",
+            text = "Активных дней в этом месяце: ${activeDates.count { it.year == selectedMonth.year && it.month == selectedMonth.month }}",
             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
         )
         Text(
@@ -158,7 +171,7 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
 }
 
 @Composable
-private fun DayChip(day: LocalDate, active: Boolean, selected: Boolean, modifier: Modifier = Modifier) {
+private fun DayChip(day: LocalDate, active: Boolean, selected: Boolean, calories: Int? = null, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .background(
@@ -173,12 +186,16 @@ private fun DayChip(day: LocalDate, active: Boolean, selected: Boolean, modifier
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = day.dayOfMonth.toString(), fontWeight = FontWeight.Bold)
-        Text(text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()), fontSize = 11.sp)
+        if (calories != null && calories > 0) {
+            Text(text = "${calories} kcal", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+        } else {
+            Text(text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()), fontSize = 11.sp)
+        }
     }
 }
 
 @Composable
-private fun DayCell(day: LocalDate, currentMonth: Boolean, active: Boolean, selected: Boolean, modifier: Modifier = Modifier) {
+private fun DayCell(day: LocalDate, currentMonth: Boolean, active: Boolean, selected: Boolean, calories: Int? = null, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .background(
@@ -200,10 +217,14 @@ private fun DayCell(day: LocalDate, currentMonth: Boolean, active: Boolean, sele
                 color = if (currentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
-        Text(
-            text = if (active) "●" else "",
-            fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.primary
-        )
+        if (calories != null && calories > 0) {
+            Text(text = "${calories} kcal", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+        } else {
+            Text(
+                text = if (active) "●" else "",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }

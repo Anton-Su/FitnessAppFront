@@ -19,7 +19,9 @@ data class ExerciseDto(
     val title: String,
     val description: String,
     val videoUrl: String,
-    val type: String
+    val type: String,
+    // Сервер может снабжать упражнение подсчитанными калориями — используем Double и значение по умолчанию
+    val caloriesBurnt: Double = 0.0
 )
 
 fun ExerciseDto.toDomain(): Exercise = Exercise(
@@ -27,6 +29,7 @@ fun ExerciseDto.toDomain(): Exercise = Exercise(
     title = title,
     description = description,
     videoUrl = videoUrl,
-    type = type
+    type = type,
+    caloriesBurnt = caloriesBurnt
 )
 

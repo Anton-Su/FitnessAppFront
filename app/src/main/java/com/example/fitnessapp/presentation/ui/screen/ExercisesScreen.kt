@@ -43,12 +43,12 @@ fun ExercisesScreen(navController: NavHostController, viewModel: FitnessViewMode
     val filteredExercises by viewModel.filteredExercises.collectAsState()
     val scrollState = rememberScrollState()
 
-    var selectedType by remember { mutableStateOf("Всё") }
-    var isFiltering by remember { mutableStateOf(false) }
+    var selectedType by remember { mutableStateOf("всё") }
     var expandedTypeMenu by remember { mutableStateOf(false) }
 
-    val exerciseTypes = listOf("Всё", "кардио", "силовая", "растяжка", "баланс", "йога")
-    val displayedExercises = if (isFiltering) filteredExercises else exercises
+    val exerciseTypes = listOf("всё", "кардио", "силовая", "растяжка", "баланс", "йога")
+    // Вместо отдельного флага isFiltering используем текущий выбранный тип — это упрощает логику
+    val displayedExercises = if (selectedType == "всё") exercises else filteredExercises
 
     Column(
         modifier = Modifier
@@ -103,12 +103,8 @@ fun ExercisesScreen(navController: NavHostController, viewModel: FitnessViewMode
 
             Button(
                 onClick = {
-                    if (selectedType == "Всё") {
-                        isFiltering = false
-                    } else {
-                        viewModel.filterExercisesByType(selectedType)
-                        isFiltering = true
-                    }
+                    // Запросим фильтр на ViewModel (он вернёт пустой список для "всё")
+                    viewModel.filterExercisesByType(selectedType)
                 },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)

@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.first
  * Оборачивает операции DAO и предоставляет их доменному слою.
  */
 class HistoryRepositoryImpl(private val dao: HistoryDao) : HistoryRepository {
-    private val gson = Gson()
+    private val gson: Gson by lazy { Gson() }
 
     /** Возвращает поток со всеми записями истории. */
     override fun getHistory(): Flow<List<HistoryEntity>> = dao.getAllHistory()

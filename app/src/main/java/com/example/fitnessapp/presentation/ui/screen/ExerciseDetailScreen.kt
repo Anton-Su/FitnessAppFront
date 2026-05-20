@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -42,6 +43,16 @@ import androidx.navigation.NavHostController
 import com.example.fitnessapp.domain.model.Exercise
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
 import com.example.fitnessapp.service.SecondsCounterService
+import com.example.fitnessapp.data.remote.RetrofitClient
+import com.example.fitnessapp.data.remote.dto.CaloriesRequest
+import com.example.fitnessapp.data.preferences.TokenManager
+import com.example.fitnessapp.data.preferences.SettingsDataStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
+import java.time.LocalDate
 
 /**
  * Экран деталей упражнения.
@@ -53,6 +64,7 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
     var isRunning by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(exerciseId) {
         exercise = viewModel.loadExerciseById(exerciseId)
@@ -175,7 +187,59 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
         Button(
             onClick = {
                 isRunning = false
+                // Рассчитать калории по времени и добавить к дневному счёту, затем попытаться отправить на сервер.
+                val secs = seconds
                 seconds = 0
+                // рассчитываем калории: используем простую MET-оценку в зависимости от типа
+                val met = when (exercise?.type?.lowercase()) {
+                    "кардио", "cardio" -> 8.0
+                    "силовая", "strength" -> 6.0
+                    "йога", "yoga" -> 3.0
+                    "растяжка", "stretching" -> 2.0
+                    else -> 4.0
+                }
+                // минутах
+                val minutes = secs / 60.0
+                coroutineScope.launch {
+                    try {
+                        // добавляем локально
+                         val weight = viewModel.weight.value
+                         val kcalPerMin = (met * weight * 3.5) / 200.0
+                         val kcal = (kcalPerMin * minutes).coerceAtLeast(0.0)
+                         val rounded = kcal.roundToInt()
+                         viewModel.addCalories(rounded)
+
+                        // пытаемся отправить на сервер
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val settings = SettingsDataStore(context)
+                                val tokenManager = TokenManager(context)
+                                RetrofitClient.init(context)
+                                tokenManager.loadTokens()
+                                val userId = settings.userIdFlow.first()
+                                val steps = settings.stepsFlow.first()
+                                val caloriesNow = settings.caloriesFlow.first()
+                                if (userId > 0) {
+                                    RetrofitClient.authApi.postCalories(
+                                        id = userId,
+                                        request = CaloriesRequest(
+                                            steps = steps,
+                                            calories = caloriesNow,
+                                            date = LocalDate.now().toString()
+                                        )
+                                    )
+                                    // при успехе обнулим локальные калории
+                                    settings.setCalories(0)
+                                }
+                            } catch (e: Exception) {
+                                // не удалось отправить — оставляем локально
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // игнорируем ошибки расчёта/сохранения
+                    }
+                }
+
                 ContextCompat.startForegroundService(
                     context,
                     Intent(context, SecondsCounterService::class.java).apply {

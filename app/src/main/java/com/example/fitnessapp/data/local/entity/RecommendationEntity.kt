@@ -5,12 +5,15 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Сущность для хранения упражнений в Room.
+ * Локальный кэш рекомендации дня для конкретного пользователя.
  */
-@Entity(tableName = "exercises")
-data class ExerciseEntity(
+@Entity(tableName = "recommendations")
+data class RecommendationEntity(
     @PrimaryKey
-    val id: Int,
+    @ColumnInfo(name = "user_id")
+    val userId: Int,
+    @ColumnInfo(name = "exercise_id")
+    val exerciseId: Int,
     @ColumnInfo(name = "title")
     val title: String,
     @ColumnInfo(name = "description")
@@ -19,9 +22,5 @@ data class ExerciseEntity(
     val videoUrl: String,
     @ColumnInfo(name = "type")
     val type: String
-    ,
-    /** Сохранённое (возможно рассчитанное) значение калорий для упражнения */
-    @ColumnInfo(name = "calories_burnt")
-    val caloriesBurnt: Double = 0.0
 )
 

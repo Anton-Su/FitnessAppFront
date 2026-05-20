@@ -1,12 +1,18 @@
 package com.example.fitnessapp.data.repository
 
 import android.util.Log
+import com.example.fitnessapp.data.local.dao.RecommendationDao
+import com.example.fitnessapp.data.local.mapper.toDomain
+import com.example.fitnessapp.data.local.mapper.toEntity
+import com.example.fitnessapp.data.local.mapper.toRecommendationEntity
 import com.example.fitnessapp.data.remote.ExerciseApiRetrofit
 import com.example.fitnessapp.data.remote.RetrofitClient
-import com.example.fitnessapp.data.remote.dto.toDomain
+import com.example.fitnessapp.data.remote.dto.toDomain as dtoToDomain
 import com.example.fitnessapp.domain.model.Exercise
 import com.example.fitnessapp.domain.repository.ExerciseRepository
+import com.example.fitnessapp.domain.repository.LocalExerciseRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
@@ -15,27 +21,29 @@ import java.io.IOException
  * Репозиторий упражнений, работающий через Retrofit.
  */
 class ExerciseRepositoryImpl(
-    private val api: ExerciseApiRetrofit = RetrofitClient.exerciseApi
+    private val api: ExerciseApiRetrofit = RetrofitClient.exerciseApi,
+    private val localRepo: LocalExerciseRepository,
+    private val recommendationDao: RecommendationDao
 ) : ExerciseRepository {
     companion object {
         private const val TAG = "ExerciseRepository"
     }
 
     /**
-     * Возвращает поток упражнений, загруженных с сервера.
+     * Возвращает поток упражнений, сначала из Room, затем обновляет их с сервера.
      */
     override fun getExercises(): Flow<List<Exercise>> = flow {
+        emit(localRepo.getAll().first().map { it.toDomain() })
         try {
-            emit(api.getExercises().map { it.toDomain() })
+            val remote = api.getExercises().map { it.dtoToDomain() }
+            localRepo.insertAll(remote.map { it.toEntity() })
+            emit(localRepo.getAll().first().map { it.toDomain() })
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP error while loading exercises: ${e.code()}", e)
-            emit(emptyList())
         } catch (e: IOException) {
             Log.e(TAG, "Network error while loading exercises", e)
-            emit(emptyList())
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error while loading exercises", e)
-            emit(emptyList())
         }
     }
 
@@ -44,16 +52,16 @@ class ExerciseRepositoryImpl(
      */
     override suspend fun getExerciseById(id: Int): Exercise? {
         return try {
-            api.getExerciseById(id).toDomain()
+            api.getExerciseById(id).dtoToDomain()
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP error while loading exercise by id=$id: ${e.code()}", e)
-            null
+            localRepo.getById(id)?.toDomain()
         } catch (e: IOException) {
             Log.e(TAG, "Network error while loading exercise by id=$id", e)
-            null
+            localRepo.getById(id)?.toDomain()
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error while loading exercise by id=$id", e)
-            null
+            localRepo.getById(id)?.toDomain()
         }
     }
 
@@ -62,16 +70,16 @@ class ExerciseRepositoryImpl(
      */
     override suspend fun getExercisesByType(type: String): List<Exercise> {
         return try {
-            api.getExercisesByType(type).map { it.toDomain() }
+            api.getExercisesByType(type).map { it.dtoToDomain() }
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP error while loading exercises by type=$type: ${e.code()}", e)
-            emptyList()
+            localExercisesByType(type)
         } catch (e: IOException) {
             Log.e(TAG, "Network error while loading exercises by type=$type", e)
-            emptyList()
+            localExercisesByType(type)
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error while loading exercises by type=$type", e)
-            emptyList()
+            localExercisesByType(type)
         }
     }
 
@@ -81,16 +89,29 @@ class ExerciseRepositoryImpl(
     override suspend fun getRecommendation(userId: Int): Exercise? {
         val authApi = RetrofitClient.authApi
         return try {
-            authApi.getRecommendation(userId).toDomain()
+            val remote = authApi.getRecommendation(userId).dtoToDomain()
+            recommendationDao.upsert(remote.toRecommendationEntity(userId))
+            localRepo.insert(remote.toEntity())
+            remote
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP error while loading recommendation for user=$userId: ${e.code()}", e)
-            null
+            localRecommendation(userId)
         } catch (e: IOException) {
             Log.e(TAG, "Network error while loading recommendation for user=$userId", e)
-            null
+            localRecommendation(userId)
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error while loading recommendation for user=$userId", e)
-            null
+            localRecommendation(userId)
         }
+    }
+
+    private suspend fun localExercisesByType(type: String): List<Exercise> {
+        return localRepo.getAll().first()
+            .map { it.toDomain() }
+            .filter { it.type.equals(type, ignoreCase = true) }
+    }
+
+    private suspend fun localRecommendation(userId: Int): Exercise? {
+        return recommendationDao.getByUserId(userId)?.toDomain()
     }
 }

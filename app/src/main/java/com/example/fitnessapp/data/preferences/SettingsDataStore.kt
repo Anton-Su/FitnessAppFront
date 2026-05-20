@@ -50,6 +50,8 @@ class SettingsDataStore(private val context: Context) {
         val GOAL = intPreferencesKey("goal")
         /** Ключ для хранения текущего количества шагов за день. */
         val STEPS = intPreferencesKey("steps")
+        /** Ключ для хранения текущих сожжённых калорий за день. */
+        val CALORIES = intPreferencesKey("calories")
     }
 
     /**
@@ -132,6 +134,14 @@ class SettingsDataStore(private val context: Context) {
     val stepsFlow: Flow<Int> = context.dataStore.data
         .map { prefs: Preferences ->
             prefs[STEPS] ?: 0
+        }
+
+    /**
+     * Поток с текущим количеством сожжённых калорий за день. По умолчанию 0.
+     */
+    val caloriesFlow: Flow<Int> = context.dataStore.data
+        .map { prefs: Preferences ->
+            prefs[CALORIES] ?: 0
         }
 
     /**
@@ -233,6 +243,15 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setSteps(value: Int) {
         context.dataStore.edit { prefs: MutablePreferences ->
             prefs[STEPS] = value
+        }
+    }
+
+    /**
+     * Записать текущее количество сожжённых калорий за день.
+     */
+    suspend fun setCalories(value: Int) {
+        context.dataStore.edit { prefs: MutablePreferences ->
+            prefs[CALORIES] = value
         }
     }
 

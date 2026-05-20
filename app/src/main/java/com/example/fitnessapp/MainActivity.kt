@@ -64,8 +64,10 @@ class MainActivity : ComponentActivity() {
         val db = AppDatabase.getInstance(applicationContext)
         val historyDao = db.historyDao()
         val userSettingsDao = db.userSettingsDao()
+        val recommendationDao = db.recommendationDao()
 
-        val exerciseRepo = ExerciseRepositoryImpl()
+        val localExerciseRepo = LocalExerciseRepositoryImpl(db.exerciseDao())
+        val exerciseRepo = ExerciseRepositoryImpl(RetrofitClient.exerciseApi, localExerciseRepo, recommendationDao)
         val historyRepo = HistoryRepositoryImpl(historyDao)
         val userSettingsRepo = UserSettingsRepositoryImpl(userSettingsDao)
         val authRepository = AuthRepositoryImpl(RetrofitClient.authApi, tokenManager)
@@ -81,7 +83,6 @@ class MainActivity : ComponentActivity() {
         val getUserSettingsUseCase = GetUserSettingsUseCase(userSettingsRepo)
         val upsertUserSettingsUseCase = UpsertUserSettingsUseCase(userSettingsRepo)
 
-        val localExerciseRepo = LocalExerciseRepositoryImpl(db.exerciseDao())
         val syncExercisesUseCase = SyncExercisesUseCase(remoteExerciseRepo, localExerciseRepo)
 
         val viewModel = FitnessViewModel(

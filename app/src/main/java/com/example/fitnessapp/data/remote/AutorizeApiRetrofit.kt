@@ -16,32 +16,27 @@ import retrofit2.http.Query
 import okhttp3.ResponseBody
 
 interface AutorizeApiRetrofit {
-    @POST("registration")
+    @POST("authorization/registration")
     suspend fun register(
         @Body request: UserDto
     ): UserDto
 
-    @POST("login")
+    @POST("authorization/login")
     suspend fun login(
         @Body request: LoginRequestDto
     ): LoginResponse
 
-    @GET("users")
-    suspend fun getUsers(
-        @Query("limit") limit: Int = 30,
-        @Query("skip") skip: Int = 0
-    ): UsersResponse
-
-    @GET("users/{id}")
-    suspend fun getUserById(
-        @Path("id") id: Int
-    ): UserDto
 
     @POST("users/{id}/callories")
     suspend fun postCalories(
         @Path("id") id: Int,
         @Body request: CaloriesRequest
     ): ResponseBody
+
+    @GET("users/{id}/history")
+    suspend fun getHistory(
+        @Path("id") id: Int
+    ): List<com.example.fitnessapp.data.remote.dto.HistoryDto>
 
     @PUT("users/{id}")
     suspend fun updateUser(

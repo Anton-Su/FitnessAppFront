@@ -100,6 +100,9 @@ class FitnessViewModel(
     val stepsToday: StateFlow<Int> = settingsDataStore.stepsFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
+    val caloriesToday: StateFlow<Int> = settingsDataStore.caloriesFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
     private val _recommendation = MutableStateFlow<com.example.fitnessapp.domain.model.Exercise?>(null)
     val recommendation = _recommendation.asStateFlow()
 
@@ -115,6 +118,16 @@ class FitnessViewModel(
     fun setStatusActive(value: Boolean) = viewModelScope.launch { settingsDataStore.setStatusActive(value) }
     fun setGoal(value: Int) = viewModelScope.launch { settingsDataStore.setGoal(value) }
     fun setSteps(value: Int) = viewModelScope.launch { settingsDataStore.setSteps(value) }
+    fun setCalories(value: Int) = viewModelScope.launch { settingsDataStore.setCalories(value) }
+
+    fun addCalories(value: Int) = viewModelScope.launch {
+        try {
+            val current = settingsDataStore.caloriesFlow.first()
+            settingsDataStore.setCalories(current + value)
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
 
     fun updateUserProfile(
         name: String,
@@ -150,6 +163,19 @@ class FitnessViewModel(
                         settingsDataStore.setHeight(height)
                         settingsDataStore.setWeight(weight)
                         settingsDataStore.setGoal(goal)
+                        upsertUserSettings(
+                            UserSettingsEntity(
+                                id = 0,
+                                userId = userId,
+                                age = age,
+                                name = name,
+                                email = email,
+                                height = height,
+                                weight = weight,
+                                statusActive = statusActive.value,
+                                goal = goal
+                            )
+                        )
                     },
                     onFailure = { Log.e(TAG, "updateUserProfile failed", it) }
                 )
@@ -184,6 +210,19 @@ class FitnessViewModel(
                         settingsDataStore.setHeight(height)
                         settingsDataStore.setWeight(weight)
                         settingsDataStore.setUserId(it)
+                        upsertUserSettings(
+                            UserSettingsEntity(
+                                id = 0,
+                                userId = it,
+                                age = age,
+                                name = firstName,
+                                email = email,
+                                height = height,
+                                weight = weight,
+                                statusActive = statusActive.value,
+                                goal = goal.value
+                            )
+                        )
                         AuthUiState.Success("Регистрация завершена")
                     },
                     onFailure = { AuthUiState.Error(it.message ?: "Попробуйте снова") }
@@ -205,6 +244,19 @@ class FitnessViewModel(
                         settingsDataStore.setEmail(email)
                         settingsDataStore.setPassword(password)
                         settingsDataStore.setUserId(it)
+                        upsertUserSettings(
+                            UserSettingsEntity(
+                                id = 0,
+                                userId = it,
+                                age = age.value,
+                                name = name.value,
+                                email = email,
+                                height = height.value,
+                                weight = weight.value,
+                                statusActive = statusActive.value,
+                                goal = goal.value
+                            )
+                        )
                         AuthUiState.Success("Авторизация успешна")
                     },
                     onFailure = { AuthUiState.Error(it.message ?: "Не удалось авторизоваться") }
