@@ -3,7 +3,6 @@ package com.example.fitnessapp.presentation.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fitnessapp.data.local.entity.HistoryEntity
 import com.example.fitnessapp.data.local.entity.UserSettingsEntity
 import com.example.fitnessapp.data.preferences.SettingsDataStore
 import com.example.fitnessapp.domain.repository.AuthRepository
@@ -13,9 +12,6 @@ import com.example.fitnessapp.domain.usecase.GetExercisesUseCase
 import com.example.fitnessapp.domain.usecase.GetExercisesByTypeUseCase
 import com.example.fitnessapp.domain.usecase.GetHistoryUseCase
 import com.example.fitnessapp.domain.usecase.GetRecommendationUseCase
-import com.example.fitnessapp.domain.usecase.GetUserSettingsUseCase
-import com.example.fitnessapp.domain.usecase.InsertHistoryUseCase
-import com.example.fitnessapp.domain.usecase.SyncExercisesUseCase
 import com.example.fitnessapp.domain.usecase.UpsertUserSettingsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,16 +27,13 @@ import java.io.File
  * ViewModel верхнего уровня приложения.
  */
 class FitnessViewModel(
-    private val getExercisesUseCase: GetExercisesUseCase,
+    getExercisesUseCase: GetExercisesUseCase,
     private val getExerciseByIdUseCase: GetExerciseByIdUseCase,
     private val getExercisesByTypeUseCase: GetExercisesByTypeUseCase,
     private val getRecommendationUseCase: GetRecommendationUseCase,
     private val settingsDataStore: SettingsDataStore,
-    private val getHistoryUseCase: GetHistoryUseCase,
-    private val insertHistoryUseCase: InsertHistoryUseCase,
-    private val getUserSettingsUseCase: GetUserSettingsUseCase,
+    getHistoryUseCase: GetHistoryUseCase,
     private val upsertUserSettingsUseCase: UpsertUserSettingsUseCase,
-    private val syncExercisesUseCase: SyncExercisesUseCase? = null,
     private val authRepository: AuthRepository? = null,
     private val exportHistoryUseCase: ExportHistoryUseCase? = null
 ) : ViewModel() {
@@ -61,13 +54,6 @@ class FitnessViewModel(
 
     val history = getHistoryUseCase()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    fun insertHistory(historyEntity: HistoryEntity) = viewModelScope.launch(Dispatchers.IO) {
-        insertHistoryUseCase(historyEntity)
-    }
-
-    val userSettings = getUserSettingsUseCase()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun upsertUserSettings(settings: UserSettingsEntity) = viewModelScope.launch(Dispatchers.IO) {
         upsertUserSettingsUseCase(settings)
@@ -100,9 +86,6 @@ class FitnessViewModel(
     val stepsToday: StateFlow<Int> = settingsDataStore.stepsFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
-    val caloriesToday: StateFlow<Int> = settingsDataStore.caloriesFlow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
-
     private val _recommendation = MutableStateFlow<com.example.fitnessapp.domain.model.Exercise?>(null)
     val recommendation = _recommendation.asStateFlow()
 
@@ -111,20 +94,17 @@ class FitnessViewModel(
 
     fun setAge(value: Int) = viewModelScope.launch { settingsDataStore.setAge(value) }
     fun setName(value: String) = viewModelScope.launch { settingsDataStore.setName(value) }
-    fun setUserId(value: Int) = viewModelScope.launch { settingsDataStore.setUserId(value) }
     fun setEmail(value: String) = viewModelScope.launch { settingsDataStore.setEmail(value) }
     fun setHeight(value: Double) = viewModelScope.launch { settingsDataStore.setHeight(value) }
     fun setWeight(value: Double) = viewModelScope.launch { settingsDataStore.setWeight(value) }
     fun setStatusActive(value: Boolean) = viewModelScope.launch { settingsDataStore.setStatusActive(value) }
     fun setGoal(value: Int) = viewModelScope.launch { settingsDataStore.setGoal(value) }
-    fun setSteps(value: Int) = viewModelScope.launch { settingsDataStore.setSteps(value) }
-    fun setCalories(value: Int) = viewModelScope.launch { settingsDataStore.setCalories(value) }
 
     fun addCalories(value: Int) = viewModelScope.launch {
         try {
             val current = settingsDataStore.caloriesFlow.first()
             settingsDataStore.setCalories(current + value)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // ignore
         }
     }
@@ -181,17 +161,6 @@ class FitnessViewModel(
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "updateUserProfile failed", e)
-            }
-        }
-    }
-
-    fun syncExercises() {
-        syncExercisesUseCase ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                syncExercisesUseCase()
-            } catch (e: Exception) {
-                Log.e(TAG, "syncExercises failed", e)
             }
         }
     }
@@ -309,7 +278,6 @@ class FitnessViewModel(
         }
     }
 
-    suspend fun exportHistoryJson(): String? = exportHistoryUseCase?.invoke()
 
     suspend fun exportHistoryToFile(filePath: String): Boolean {
         val json = exportHistoryUseCase?.invoke() ?: return false

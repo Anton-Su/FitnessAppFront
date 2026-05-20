@@ -22,16 +22,12 @@ import com.example.fitnessapp.data.repository.AuthRepositoryImpl
 import com.example.fitnessapp.data.repository.ExerciseRepositoryImpl
 import com.example.fitnessapp.data.repository.HistoryRepositoryImpl
 import com.example.fitnessapp.data.repository.LocalExerciseRepositoryImpl
-import com.example.fitnessapp.data.repository.RemoteExerciseRepository
 import com.example.fitnessapp.data.repository.UserSettingsRepositoryImpl
 import com.example.fitnessapp.domain.usecase.GetExerciseByIdUseCase
 import com.example.fitnessapp.domain.usecase.GetExercisesUseCase
 import com.example.fitnessapp.domain.usecase.GetExercisesByTypeUseCase
 import com.example.fitnessapp.domain.usecase.GetRecommendationUseCase
 import com.example.fitnessapp.domain.usecase.GetHistoryUseCase
-import com.example.fitnessapp.domain.usecase.GetUserSettingsUseCase
-import com.example.fitnessapp.domain.usecase.InsertHistoryUseCase
-import com.example.fitnessapp.domain.usecase.SyncExercisesUseCase
 import com.example.fitnessapp.domain.usecase.UpsertUserSettingsUseCase
 import com.example.fitnessapp.navigation.Navigation
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
@@ -72,18 +68,12 @@ class MainActivity : ComponentActivity() {
         val userSettingsRepo = UserSettingsRepositoryImpl(userSettingsDao)
         val authRepository = AuthRepositoryImpl(RetrofitClient.authApi, tokenManager)
 
-        val remoteExerciseRepo = RemoteExerciseRepository(RetrofitClient.exerciseApi)
-
         val getExercisesUseCase = GetExercisesUseCase(exerciseRepo)
         val getExerciseByIdUseCase = GetExerciseByIdUseCase(exerciseRepo)
         val getExercisesByTypeUseCase = GetExercisesByTypeUseCase(exerciseRepo)
         val getRecommendationUseCase = GetRecommendationUseCase(exerciseRepo)
         val getHistoryUseCase = GetHistoryUseCase(historyRepo)
-        val insertHistoryUseCase = InsertHistoryUseCase(historyRepo)
-        val getUserSettingsUseCase = GetUserSettingsUseCase(userSettingsRepo)
         val upsertUserSettingsUseCase = UpsertUserSettingsUseCase(userSettingsRepo)
-
-        val syncExercisesUseCase = SyncExercisesUseCase(remoteExerciseRepo, localExerciseRepo)
 
         val viewModel = FitnessViewModel(
             getExercisesUseCase,
@@ -92,10 +82,7 @@ class MainActivity : ComponentActivity() {
             getRecommendationUseCase,
             settingsDataStore,
             getHistoryUseCase,
-            insertHistoryUseCase,
-            getUserSettingsUseCase,
             upsertUserSettingsUseCase,
-            syncExercisesUseCase,
             authRepository
         )
 

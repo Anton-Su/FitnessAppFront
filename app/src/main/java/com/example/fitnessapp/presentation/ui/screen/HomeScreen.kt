@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.compose.foundation.clickable
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
+import java.util.Locale
 
 /**
  * Главный экран приложения.
@@ -122,7 +123,7 @@ fun HomeScreen(navController: NavHostController, viewModel: FitnessViewModel) {
                         )
                     )
                     Text(
-                        text = "Высота: ${String.format("%.1f", height)} см, вес: ${String.format("%.1f", weight)} кг",
+                                text = "Высота: ${String.format(Locale.getDefault(), "%.1f", height)} см, вес: ${String.format(Locale.getDefault(), "%.1f", weight)} кг",
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.SansSerif)
                     )
                 }
@@ -315,20 +316,4 @@ private fun StatCard(title: String, subtitle: String, modifier: Modifier = Modif
     }
 }
 
-@Composable
-private fun ActionHint(title: String, subtitle: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold)
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = FontFamily.SansSerif,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        )
-    }
-}
 

@@ -32,4 +32,3 @@ fun ExerciseDto.toDomain(): Exercise = Exercise(
     type = type,
     caloriesBurnt = caloriesBurnt
 )
-

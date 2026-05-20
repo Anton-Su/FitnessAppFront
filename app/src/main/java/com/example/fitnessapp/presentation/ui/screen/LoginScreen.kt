@@ -45,12 +45,8 @@ fun LoginScreen(navController: NavHostController, viewModel: FitnessViewModel) {
     var password by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(loginState) {
-        if (loginState is AuthUiState.Success || loginState is AuthUiState.Error) {
-            // Scroll to top or add visual feedback if needed
-        }
 
-
-        // TODO("Temporary bypass for testing navigation, remove '|| true' in production, Убрать условие true после тестирования")
+        // Специально для демонстрации успешного входа, убери условие "|| true" для реальной логики!!!!
 
         if (loginState is AuthUiState.Success || true) {
             delay(2000)

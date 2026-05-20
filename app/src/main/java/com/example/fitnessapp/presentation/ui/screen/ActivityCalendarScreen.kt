@@ -1,5 +1,6 @@
 package com.example.fitnessapp.presentation.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -26,8 +27,10 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
@@ -36,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -46,10 +52,13 @@ import java.util.Locale
 /**
  * Экран календаря активности.
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessViewModel) {
     val history = viewModel.history.collectAsState().value
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     var expandFraction by remember { mutableFloatStateOf(0.15f) }
     val now = LocalDate.now()
     var selectedMonth by remember { mutableStateOf(YearMonth.from(now)) }
@@ -163,6 +172,26 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
             text = "Активных дней в этом месяце: ${activeDates.count { it.year == selectedMonth.year && it.month == selectedMonth.month }}",
             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
         )
+
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    val path = java.io.File(context.filesDir, "history_export.json").absolutePath
+                    val exported = withContext(Dispatchers.IO) {
+                        viewModel.exportHistoryToFile(path)
+                    }
+                    Toast.makeText(
+                        context,
+                        if (exported) "История экспортирована в файл" else "Не удалось экспортировать историю",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Экспорт истории")
+        }
+
         Text(
             text = "Потяни календарь вниз — он раскроется в полный месяц.",
             style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -171,7 +200,7 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
 }
 
 @Composable
-private fun DayChip(day: LocalDate, active: Boolean, selected: Boolean, calories: Int? = null, modifier: Modifier = Modifier) {
+private fun DayChip(modifier: Modifier = Modifier, day: LocalDate, active: Boolean, selected: Boolean, calories: Int? = null) {
     Column(
         modifier = modifier
             .background(
@@ -195,7 +224,7 @@ private fun DayChip(day: LocalDate, active: Boolean, selected: Boolean, calories
 }
 
 @Composable
-private fun DayCell(day: LocalDate, currentMonth: Boolean, active: Boolean, selected: Boolean, calories: Int? = null, modifier: Modifier = Modifier) {
+private fun DayCell(modifier: Modifier = Modifier, day: LocalDate, currentMonth: Boolean, active: Boolean, selected: Boolean, calories: Int? = null) {
     Column(
         modifier = modifier
             .background(

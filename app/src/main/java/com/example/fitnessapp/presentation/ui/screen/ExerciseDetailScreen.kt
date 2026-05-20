@@ -1,5 +1,6 @@
 package com.example.fitnessapp.presentation.ui.screen
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -231,11 +232,11 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
                                     // при успехе обнулим локальные калории
                                     settings.setCalories(0)
                                 }
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 // не удалось отправить — оставляем локально
                             }
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         // игнорируем ошибки расчёта/сохранения
                     }
                 }
@@ -261,6 +262,7 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
     }
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun ExerciseVideoPreview(videoUrl: String) {
     val html = remember(videoUrl) { buildVideoPreviewHtml(videoUrl) }

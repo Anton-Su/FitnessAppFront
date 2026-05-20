@@ -1,6 +1,5 @@
 package com.example.fitnessapp.presentation.ui.screen
 
-import android.content.pm.FeatureInfo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
