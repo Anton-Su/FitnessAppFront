@@ -8,6 +8,7 @@ package com.example.fitnessapp.domain.model
  * @property description краткое описание и инструкции
  * @property videoUrl ссылка на видео с демонстрацией
  * @property type тип упражнения (например: "strength", "cardio", "flexibility")
+ * @property caloriesBurnt примерная энергия, сожжённая при выполнении этого упражнения (в килокалориях). По умолчанию 0.0
  */
 data class Exercise(
     val id: Int,
