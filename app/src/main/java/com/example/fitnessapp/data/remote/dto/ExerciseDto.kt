@@ -3,32 +3,36 @@ package com.example.fitnessapp.data.remote.dto
 import com.example.fitnessapp.domain.model.Exercise
 
 /**
- * DTO — переносимый объект упражнения, получаемый с удалённого сервера.
- *
- * Используется в сетевом слое для парсинга ответа и последующего преобразования
- * в доменную или локальную модель.
- *
- * @property id уникальный идентификатор упражнения
- * @property title название упражнения
- * @property description текстовое описание и инструкции по выполнению
- * @property videoUrl URL-адрес видео с демонстрацией упражнения
- * @property type тип упражнения (например: "cardio", "strength", "flexibility" и т.д.)
+ * Универсальный DTO для упражнений — поддерживает старый внутренний формат
+ * (id/title/videoUrl) и новый серверный формат (exercise_id/name/file_path).
+ * Все поля опциональны/с дефолтами, чтобы действовать как плейсхолдеры при отсутствии данных.
  */
 data class ExerciseDto(
-    val id: Int,
-    val title: String,
-    val description: String,
-    val videoUrl: String,
-    val type: String,
-    // Сервер может снабжать упражнение подсчитанными калориями — используем Double и значение по умолчанию
+    // новый серверный формат
+    val exercise_id: Long? = null,
+    val name: String = "",
+    val file_path: String = "",
+    // старый внутренний формат
+    val id: Int? = null,
+    val title: String = "",
+    val description: String = "",
+    val videoUrl: String = "",
+    val type: String = "",
     val caloriesBurnt: Double = 0.0
 )
 
 fun ExerciseDto.toDomain(): Exercise = Exercise(
-    id = id,
-    title = title,
+    id = (exercise_id?.toInt() ?: id ?: 0),
+    title = if (title.isNotBlank()) title else name,
     description = description,
-    videoUrl = videoUrl,
-    type = type,
+    videoUrl = if (videoUrl.isNotBlank()) videoUrl else file_path,
+    type = if (type.isNotBlank()) type else run {
+        when {
+            name.contains("cardio", ignoreCase = true) -> "cardio"
+            name.contains("strength", ignoreCase = true) -> "strength"
+            name.contains("flexibility", ignoreCase = true) -> "flexibility"
+            else -> "other"
+        }
+    },
     caloriesBurnt = caloriesBurnt
 )

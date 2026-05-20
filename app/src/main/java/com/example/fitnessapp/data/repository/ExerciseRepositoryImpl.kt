@@ -87,21 +87,12 @@ class ExerciseRepositoryImpl(
      * Возвращает рекомендуемое упражнение для пользователя.
      */
     override suspend fun getRecommendation(userId: Int): Exercise? {
-        val authApi = RetrofitClient.authApi
+        // Server may no longer provide a recommendation endpoint; prefer local cache
         return try {
-            val remote = authApi.getRecommendation(userId).dtoToDomain()
-            recommendationDao.upsert(remote.toRecommendationEntity(userId))
-            localRepo.insert(remote.toEntity())
-            remote
-        } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error while loading recommendation for user=$userId: ${e.code()}", e)
-            localRecommendation(userId)
-        } catch (e: IOException) {
-            Log.e(TAG, "Network error while loading recommendation for user=$userId", e)
             localRecommendation(userId)
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error while loading recommendation for user=$userId", e)
-            localRecommendation(userId)
+            Log.e(TAG, "Error while loading local recommendation for user=$userId", e)
+            null
         }
     }
 
