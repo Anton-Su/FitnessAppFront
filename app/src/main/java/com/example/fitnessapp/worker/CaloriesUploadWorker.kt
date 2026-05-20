@@ -7,7 +7,7 @@ import androidx.work.WorkerParameters
 import com.example.fitnessapp.data.preferences.SettingsDataStore
 import com.example.fitnessapp.data.preferences.TokenManager
 import com.example.fitnessapp.data.remote.RetrofitClient
-import com.example.fitnessapp.data.remote.dto.CaloriesRequest
+import com.example.fitnessapp.data.remote.dto.ActivityRequest
 import kotlinx.coroutines.flow.first
 import retrofit2.HttpException
 import java.io.IOException
@@ -34,20 +34,15 @@ class CaloriesUploadWorker(
             }
 
             val steps = settings.stepsFlow.first().coerceAtLeast(0)
-            val userId = settings.userIdFlow.first().coerceAtLeast(0)
             val calories = maxOf(0, (steps * 0.04).roundToInt())
 
-            if (userId <= 0) {
-                Log.e(TAG, "Skip calories upload: userId is not set")
-                return Result.success()
-            }
-
-            RetrofitClient.authApi.postCalories(
-                id = userId,
-                request = CaloriesRequest(
+            // send as activity; server will associate with authenticated user
+            RetrofitClient.authApi.createActivity(
+                request = ActivityRequest(
+                    activity_date = java.time.LocalDate.now().toString(),
                     steps = steps,
-                    calories = calories,
-                    date = java.time.LocalDate.now().toString()
+                    burnt = calories,
+                    goal_achieved = false
                 )
             )
 

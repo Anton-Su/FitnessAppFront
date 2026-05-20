@@ -45,7 +45,7 @@ import com.example.fitnessapp.domain.model.Exercise
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
 import com.example.fitnessapp.service.SecondsCounterService
 import com.example.fitnessapp.data.remote.RetrofitClient
-import com.example.fitnessapp.data.remote.dto.CaloriesRequest
+import com.example.fitnessapp.data.remote.dto.ActivityRequest
 import com.example.fitnessapp.data.preferences.TokenManager
 import com.example.fitnessapp.data.preferences.SettingsDataStore
 import kotlinx.coroutines.Dispatchers
@@ -217,16 +217,15 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
                                 val tokenManager = TokenManager(context)
                                 RetrofitClient.init(context)
                                 tokenManager.loadTokens()
-                                val userId = settings.userIdFlow.first()
                                 val steps = settings.stepsFlow.first()
                                 val caloriesNow = settings.caloriesFlow.first()
-                                if (userId > 0) {
-                                    RetrofitClient.authApi.postCalories(
-                                        id = userId,
-                                        request = CaloriesRequest(
+                                if (caloriesNow > 0) {
+                                    RetrofitClient.authApi.createActivity(
+                                        request = ActivityRequest(
+                                            activity_date = LocalDate.now().toString(),
                                             steps = steps,
-                                            calories = caloriesNow,
-                                            date = LocalDate.now().toString()
+                                            burnt = caloriesNow,
+                                            goal_achieved = false
                                         )
                                     )
                                     // при успехе обнулим локальные калории
