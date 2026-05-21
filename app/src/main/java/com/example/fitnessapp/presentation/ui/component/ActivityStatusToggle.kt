@@ -30,7 +30,7 @@ fun ActivityStatusToggle(
 ) {
     val borderColor = MaterialTheme.colorScheme.outline
     val activeColor = Color(0xFF2E7D32)  // Зелёный
-    val restColor = Color(0xFF1565C0)    // Синий
+    val restColor = Color(0xFFFF0000)    // Красный
     val textColorSelected = Color.White
     val textColorUnselected = MaterialTheme.colorScheme.onSurface
 
