@@ -62,7 +62,6 @@ import java.util.Locale
 /**
  * Экран календаря активности.
  */
-@Suppress("UNUSED_PARAMETER")
 @Composable
 fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessViewModel) {
     val remoteHistory = viewModel.remoteHistory.collectAsState().value
@@ -75,7 +74,8 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        coroutineScope.launch {
+        val scope = coroutineScope
+        scope.launch {
             val json = withContext(Dispatchers.IO) { viewModel.exportHistoryJson() }
             if (json.isNullOrBlank()) {
                 Toast.makeText(context, "Не удалось подготовить историю", Toast.LENGTH_SHORT).show()

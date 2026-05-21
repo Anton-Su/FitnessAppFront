@@ -164,7 +164,7 @@ fun HomeScreen(navController: NavHostController, viewModel: FitnessViewModel) {
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = "Разминка дня",
+                            text = "Разомнёмся?",
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontFamily = FontFamily.SansSerif,
                                 fontWeight = FontWeight.Bold,

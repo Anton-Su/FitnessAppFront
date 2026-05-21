@@ -26,8 +26,8 @@ import com.example.fitnessapp.data.repository.UserSettingsRepositoryImpl
 import com.example.fitnessapp.domain.usecase.GetExerciseByIdUseCase
 import com.example.fitnessapp.domain.usecase.GetExercisesUseCase
 import com.example.fitnessapp.domain.usecase.GetExercisesByTypeUseCase
+import com.example.fitnessapp.domain.usecase.ExportHistoryUseCase
 import com.example.fitnessapp.domain.usecase.GetRecommendationUseCase
-import com.example.fitnessapp.domain.usecase.GetHistoryUseCase
 import com.example.fitnessapp.domain.usecase.UpsertUserSettingsUseCase
 import com.example.fitnessapp.navigation.Navigation
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
         val getExerciseByIdUseCase = GetExerciseByIdUseCase(exerciseRepo)
         val getExercisesByTypeUseCase = GetExercisesByTypeUseCase(exerciseRepo)
         val getRecommendationUseCase = GetRecommendationUseCase(exerciseRepo)
-        val getHistoryUseCase = GetHistoryUseCase(historyRepo)
+        val exportHistoryUseCase = ExportHistoryUseCase(historyRepo)
         val upsertUserSettingsUseCase = UpsertUserSettingsUseCase(userSettingsRepo)
 
         val viewModel = FitnessViewModel(
@@ -81,9 +81,9 @@ class MainActivity : ComponentActivity() {
             getExercisesByTypeUseCase,
             getRecommendationUseCase,
             settingsDataStore,
-            getHistoryUseCase,
             upsertUserSettingsUseCase,
-            authRepository
+            authRepository,
+            exportHistoryUseCase
         )
 
         setContent {

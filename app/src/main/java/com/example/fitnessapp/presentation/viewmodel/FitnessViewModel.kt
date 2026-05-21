@@ -12,7 +12,6 @@ import com.example.fitnessapp.domain.usecase.ExportHistoryUseCase
 import com.example.fitnessapp.domain.usecase.GetExerciseByIdUseCase
 import com.example.fitnessapp.domain.usecase.GetExercisesUseCase
 import com.example.fitnessapp.domain.usecase.GetExercisesByTypeUseCase
-import com.example.fitnessapp.domain.usecase.GetHistoryUseCase
 import com.example.fitnessapp.domain.usecase.GetRecommendationUseCase
 import com.example.fitnessapp.domain.usecase.UpsertUserSettingsUseCase
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +23,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.io.File
 
 /**
  * ViewModel верхнего уровня приложения.
@@ -35,10 +33,9 @@ class FitnessViewModel(
     private val getExercisesByTypeUseCase: GetExercisesByTypeUseCase,
     private val getRecommendationUseCase: GetRecommendationUseCase,
     private val settingsDataStore: SettingsDataStore,
-    getHistoryUseCase: GetHistoryUseCase,
     private val upsertUserSettingsUseCase: UpsertUserSettingsUseCase,
     private val authRepository: AuthRepository? = null,
-    private val exportHistoryUseCase: ExportHistoryUseCase? = null
+    private val exportHistoryUseCase: ExportHistoryUseCase
 ) : ViewModel() {
     companion object {
         private const val TAG = "FitnessViewModel"
@@ -59,9 +56,6 @@ class FitnessViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     suspend fun loadExerciseById(id: Int) = getExerciseByIdUseCase(id)
-
-    val history = getHistoryUseCase()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun upsertUserSettings(settings: UserSettingsEntity) = viewModelScope.launch(Dispatchers.IO) {
         upsertUserSettingsUseCase(settings)
@@ -207,7 +201,7 @@ class FitnessViewModel(
     }
 
     fun deleteUser() {
-        val repo = authRepository ?: return
+        if (authRepository == null) return
         viewModelScope.launch(Dispatchers.IO) {
             _deleteState.value = AuthUiState.Loading
             try {
@@ -394,23 +388,9 @@ class FitnessViewModel(
         }
     }
 
-
-    suspend fun exportHistoryToFile(filePath: String): Boolean {
-        val json = exportHistoryUseCase?.invoke() ?: return false
-        return try {
-            val file = File(filePath)
-            file.parentFile?.mkdirs()
-            file.writeText(json)
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "exportHistoryToFile failed for path=$filePath", e)
-            false
-        }
-    }
-
     suspend fun exportHistoryJson(): String? {
         return try {
-            exportHistoryUseCase?.invoke()
+            exportHistoryUseCase.invoke()
         } catch (e: Exception) {
             Log.e(TAG, "exportHistoryJson failed", e)
             null
