@@ -136,14 +136,6 @@ fun ExerciseDetailScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
 
-        Text(
-            text = exercise?.name ?: "Упражнение #$exerciseId",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.ExtraBold
-            )
-        )
-
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -154,10 +146,20 @@ fun ExerciseDetailScreen(
                 modifier = Modifier.padding(18.dp),
                 style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif)
             )
+            Text(
+                text = "Здесь могла бы быть реклама",
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+            )
+            Text(
+                text = exercise?.caloriesBurnt.toString() + " эффективных ккал в минуту",
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+            )
         }
 
         exercise?.let {
-            Text(text = "${it.type.uppercase()}", style = MaterialTheme.typography.bodyMedium)
+            Text(text = it.type.uppercase(), style = MaterialTheme.typography.bodyMedium)
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -314,8 +316,13 @@ fun ExerciseDetailScreen(
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun ExerciseVideoPreview(videoUrl: String) {
-    val html = remember(videoUrl) { buildVideoPreviewHtml(videoUrl) }
-
+    Log.e("ExerciseVideo", "Original URL: $videoUrl")
+    val context = LocalContext.current
+    val html = remember(videoUrl) {
+        val built = buildVideoPreviewHtml(videoUrl)
+        Log.e("ExerciseVideo", "HTML built, length: ${built.length}")
+        built
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -328,22 +335,71 @@ private fun ExerciseVideoPreview(videoUrl: String) {
             factory = { context ->
                 WebView(context).apply {
                     setBackgroundColor(Color.TRANSPARENT)
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-                    settings.mediaPlaybackRequiresUserGesture = false
-                    settings.cacheMode = WebSettings.LOAD_DEFAULT
+                    settings.apply {
+                        javaScriptEnabled = true
+                        javaScriptCanOpenWindowsAutomatically = true
+                        domStorageEnabled = true
+                        mediaPlaybackRequiresUserGesture = false
+                        cacheMode = WebSettings.LOAD_DEFAULT
+                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        userAgentString = "Mozilla/5.0 (Linux; Android 12; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36"
+                        allowFileAccess = true
+                        allowContentAccess = true
+                        builtInZoomControls = true
+                    }
                     webChromeClient = WebChromeClient()
-                    webViewClient = WebViewClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                            super.onPageStarted(view, url, favicon)
+                            Log.e("ExerciseVideo", "WebView loading: $url")
+                        }
+
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            super.onPageFinished(view, url)
+                            Log.e("ExerciseVideo", "WebView finished: $url")
+                        }
+
+                        override fun shouldInterceptRequest(view: WebView?, request: android.webkit.WebResourceRequest?): android.webkit.WebResourceResponse? {
+                            val url = request?.url.toString()
+                            Log.e("ExerciseVideo", "Resource request: $url, isForMainFrame: ${request?.isForMainFrame}")
+                            return super.shouldInterceptRequest(view, request)
+                        }
+
+                        override fun onReceivedError(view: WebView?, request: android.webkit.WebResourceRequest?, error: android.webkit.WebResourceError?) {
+                            super.onReceivedError(view, request, error)
+                            Log.e("ExerciseVideo", "WebView error: ${error?.description} for ${request?.url}")
+                        }
+
+                        override fun onReceivedHttpError(view: WebView?, request: android.webkit.WebResourceRequest?, errorResponse: android.webkit.WebResourceResponse?) {
+                            super.onReceivedHttpError(view, request, errorResponse)
+                            Log.e("ExerciseVideo", "HTTP error: statusCode=${errorResponse?.statusCode} for ${request?.url}")
+                        }
+                    }
                 }
             },
             update = { webView ->
-                webView.loadDataWithBaseURL(
-                    null,
-                    html,
-                    "text/html",
-                    "UTF-8",
-                    null
-                )
+                Log.e("ExerciseVideo", "Loading HTML into WebView")
+                Log.e("ExerciseVideo", "Context cache dir: ${context.cacheDir}")
+                try {
+                    val cacheDir = context.cacheDir
+                    val htmlFile = java.io.File(cacheDir, "video_player.html")
+                    htmlFile.writeText(html)
+                    Log.e("ExerciseVideo", "File written successfully: ${htmlFile.absolutePath}")
+                    val fileUrl = "file://" + htmlFile.absolutePath
+                    Log.e("ExerciseVideo", "Loading from: $fileUrl")
+                    webView.loadUrl(fileUrl)
+                    Log.e("ExerciseVideo", "loadUrl called successfully")
+                } catch (e: Exception) {
+                    Log.e("ExerciseVideo", "Error writing HTML file or loading: ${e.message}, ${e.stackTraceToString()}")
+                    Log.e("ExerciseVideo", "Falling back to loadDataWithBaseURL with empty baseURL")
+                    webView.loadDataWithBaseURL(
+                        "",
+                        html,
+                        "text/html",
+                        "UTF-8",
+                        null
+                    )
+                }
             }
         )
     }
@@ -352,38 +408,67 @@ private fun ExerciseVideoPreview(videoUrl: String) {
 private fun buildVideoPreviewHtml(videoUrl: String): String {
     val embedUrl = videoUrl.toYouTubeEmbedUrl()
     val sourceUrl = embedUrl ?: videoUrl
+    Log.e("ExerciseVideo", "Original: $videoUrl, Embed: $embedUrl, Source: $sourceUrl")
 
     return if (embedUrl != null) {
+        // Extract video ID from embed URL
+        val videoId = embedUrl.substringAfterLast("/").substringBefore("?")
         """
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
+                    * { margin: 0; padding: 0; }
                     html, body {
-                        margin: 0;
-                        padding: 0;
                         width: 100%;
                         height: 100%;
                         background: transparent;
-                        overflow: hidden;
                     }
-                    iframe {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
+                    #player {
                         width: 100%;
                         height: 100%;
-                        border: 0;
                     }
                 </style>
             </head>
             <body>
-                <iframe
-                    src="$sourceUrl"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen>
-                </iframe>
+                <div id="player"></div>
+                <script>
+                    var tag = document.createElement('script');
+                    tag.src = "https://www.youtube.com/iframe_api";
+                    var firstScriptTag = document.getElementsByTagName('script')[0];
+                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                    
+                    var player;
+                    function onYouTubeIframeAPIReady() {
+                        console.log("YouTube API Ready, creating player for video: $videoId");
+                        player = new YT.Player('player', {
+                            height: '100%',
+                            width: '100%',
+                            videoId: '$videoId',
+                            events: {
+                                'onReady': onPlayerReady,
+                                'onError': onPlayerError
+                            },
+                            playerVars: {
+                                'fs': 1,
+                                'rel': 0,
+                                'modestbranding': 1,
+                                'controls': 1
+                            }
+                        });
+                    }
+                    
+                    function onPlayerReady(event) {
+                        console.log("Player ready");
+                        event.target.playVideo();
+                    }
+                    
+                    function onPlayerError(event) {
+                        console.error("Player error:", event.data);
+                    }
+                </script>
             </body>
             </html>
         """.trimIndent()
@@ -424,14 +509,33 @@ private fun String.toYouTubeEmbedUrl(): String? {
     val normalized = trim()
     if (normalized.isEmpty()) return null
 
+    Log.e("ExerciseVideo", "Parsing URL: $normalized")
+
     val videoId = when {
-        normalized.contains("youtu.be/") -> normalized.substringAfter("youtu.be/").substringBefore("?").substringBefore("&")
-        normalized.contains("youtube.com/watch") -> Regex("[?&]v=([^&]+)").find(normalized)?.groupValues?.getOrNull(1)
-        normalized.contains("youtube.com/embed/") -> normalized.substringAfter("youtube.com/embed/").substringBefore("?").substringBefore("&")
-        else -> null
+        normalized.contains("youtu.be/") -> {
+            val id = normalized.substringAfter("youtu.be/").substringBefore("?").substringBefore("&")
+            Log.e("ExerciseVideo", "youtu.be format, ID: $id")
+            id
+        }
+        normalized.contains("youtube.com/watch") -> {
+            val id = Regex("[?&]v=([^&]+)").find(normalized)?.groupValues?.getOrNull(1)
+            Log.e("ExerciseVideo", "youtube.com/watch format, ID: $id")
+            id
+        }
+        normalized.contains("youtube.com/embed/") -> {
+            val id = normalized.substringAfter("youtube.com/embed/").substringBefore("?").substringBefore("&")
+            Log.e("ExerciseVideo", "youtube.com/embed format, ID: $id")
+            id
+        }
+        else -> {
+            Log.e("ExerciseVideo", "URL format not recognized")
+            null
+        }
     }?.takeIf { it.isNotBlank() } ?: return null
 
-    return "https://www.youtube.com/embed/$videoId"
+    val result = "https://www.youtube.com/embed/$videoId"
+    Log.e("ExerciseVideo", "Final embed URL: $result")
+    return result
 }
 
 private fun formatSeconds(seconds: Int): String {
