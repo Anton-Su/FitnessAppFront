@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
@@ -46,16 +45,36 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onCreate() {
         super.onCreate()
         settingsDataStore = SettingsDataStore(applicationContext)
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) ?: sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
         isDetectorSensor = stepSensor?.type == Sensor.TYPE_STEP_DETECTOR
 
         createNotificationChannel()
-        startForeground(NOTIF_ID, buildNotification(0))
+        try {
+            startForeground(NOTIF_ID, buildNotification(0))
+        } catch (_: SecurityException) {
+            stopSelf()
+            return
+        }
 
         serviceScope.launch {
             currentSteps = settingsDataStore.stepsFlow.first()
-            stepSensor?.let { sensorManager.registerListener(this@StepCounterService, it, SensorManager.SENSOR_DELAY_NORMAL) }
+            if (!hasActivityRecognitionPermission()) {
+                stopSelf()
+                return@launch
+            }
+
+            val sensor = stepSensor
+            if (sensor == null) {
+                stopSelf()
+                return@launch
+            }
+
+            runCatching {
+                sensorManager.registerListener(this@StepCounterService, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+            }.onFailure {
+                stopSelf()
+            }
         }
     }
 
@@ -68,7 +87,9 @@ class StepCounterService : Service(), SensorEventListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        sensorManager.unregisterListener(this)
+        runCatching {
+            sensorManager.unregisterListener(this)
+        }
         serviceJob.cancel()
     }
 
@@ -98,7 +119,7 @@ class StepCounterService : Service(), SensorEventListener {
             settingsDataStore.setSteps(currentSteps)
 
             val notif = buildNotification(currentSteps)
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
             val canPostNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 ContextCompat.checkSelfPermission(this@StepCounterService, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
@@ -117,7 +138,7 @@ class StepCounterService : Service(), SensorEventListener {
     private fun buildNotification(steps: Int): Notification {
         val activityIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, activityIntent, if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_UPDATE_CURRENT
+            this, 0, activityIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -130,10 +151,16 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "Step Counter", NotificationManager.IMPORTANCE_LOW)
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(CHANNEL_ID, "Step Counter", NotificationManager.IMPORTANCE_LOW)
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(channel)
+    }
+
+    private fun hasActivityRecognitionPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED
     }
 }

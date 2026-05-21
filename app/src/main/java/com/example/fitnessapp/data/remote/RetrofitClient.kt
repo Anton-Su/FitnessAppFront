@@ -2,6 +2,7 @@ package com.example.fitnessapp.data.remote
 
 import android.content.Context
 import com.example.fitnessapp.data.preferences.TokenManager
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -22,6 +23,8 @@ object RetrofitClient {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
+    private val gson = GsonBuilder().create()
+
     val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(logging)
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -30,7 +33,7 @@ object RetrofitClient {
 
     private val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(GsonConverterFactory.create(gson))
         .client(okHttpClient)
         .build()
 
@@ -41,7 +44,7 @@ object RetrofitClient {
                 tokenManager = TokenManager(context.applicationContext)
                 authenticatedAuthApi = Retrofit.Builder()
                     .baseUrl(BASE_URL)
-                    .addConverterFactory(GsonConverterFactory.create())
+                    .addConverterFactory(GsonConverterFactory.create(gson))
                     .client(
                         OkHttpClient.Builder()
                             .addInterceptor(logging)

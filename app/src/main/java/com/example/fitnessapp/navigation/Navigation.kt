@@ -1,6 +1,8 @@
 package com.example.fitnessapp.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,8 +28,9 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Home : Screen("home")
     object Exercises : Screen("exercises")
-    object ExerciseDetail : Screen("exercise/{exerciseId}") {
-        fun createRoute(exerciseId: Int) = "exercise/$exerciseId"
+    object ExerciseDetail : Screen("exercise/{exerciseId}?fromRecommendation={fromRecommendation}") {
+        fun createRoute(exerciseId: Int, fromRecommendation: Boolean = false) =
+            "exercise/$exerciseId?fromRecommendation=$fromRecommendation"
     }
     object ActivityCalendar : Screen("calendar")
     object Settings : Screen("settings")
@@ -40,8 +43,14 @@ sealed class Screen(val route: String) {
  */
 @Composable
 fun Navigation(navController: NavHostController = rememberNavController(), viewModel: FitnessViewModel) {
-    // Используем экран выбора авторизации/регистрации как стартовый
-    NavHost(navController, startDestination = Screen.AuthChoice.route) {
+    // Проверяем, залогинен ли пользователь
+    val userId = viewModel.userId.collectAsState().value
+
+    // Если пользователь залогинен (userId > 0), начинаем с главной страницы
+    // Иначе начинаем с экрана выбора авторизации
+    val startDestination = if (userId > 0) Screen.Home.route else Screen.AuthChoice.route
+
+    NavHost(navController, startDestination = startDestination) {
         composable(Screen.AuthChoice.route) {
             AuthChoiceScreen(navController = navController, viewModel = viewModel)
         }
@@ -59,12 +68,20 @@ fun Navigation(navController: NavHostController = rememberNavController(), viewM
         }
         composable(
             Screen.ExerciseDetail.route,
-            arguments = listOf(navArgument("exerciseId") { type = NavType.IntType })
+            arguments = listOf(
+                navArgument("exerciseId") { type = NavType.IntType },
+                navArgument("fromRecommendation") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
         ) { backStackEntry ->
             val exerciseId = backStackEntry.arguments?.getInt("exerciseId") ?: -1
+            val fromRecommendation = backStackEntry.arguments?.getBoolean("fromRecommendation") ?: false
             ExerciseDetailScreen(
                 navController = navController,
                 exerciseId = exerciseId,
+                fromRecommendation = fromRecommendation,
                 viewModel = viewModel
             )
         }
@@ -73,6 +90,16 @@ fun Navigation(navController: NavHostController = rememberNavController(), viewM
         }
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController, viewModel = viewModel)
+        }
+    }
+
+    // Слежение за изменением userId: если он стал > 0, переходим на Home.
+    LaunchedEffect(userId) {
+        if (userId > 0) {
+            navController.navigate(Screen.Home.route) {
+                // очищаем backstack, чтобы нельзя было вернуться на экраны входа
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            }
         }
     }
 }

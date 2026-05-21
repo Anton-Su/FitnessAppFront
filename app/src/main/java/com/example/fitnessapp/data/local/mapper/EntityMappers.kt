@@ -6,7 +6,7 @@ import com.example.fitnessapp.domain.model.Exercise
 
 fun ExerciseEntity.toDomain(): Exercise = Exercise(
     id = id,
-    title = title,
+    name = name,
     description = description,
     videoUrl = videoUrl,
     type = type
@@ -14,7 +14,7 @@ fun ExerciseEntity.toDomain(): Exercise = Exercise(
 
 fun RecommendationEntity.toDomain(): Exercise = Exercise(
     id = exerciseId,
-    title = title,
+    name = name,
     description = description,
     videoUrl = videoUrl,
     type = type
@@ -22,7 +22,7 @@ fun RecommendationEntity.toDomain(): Exercise = Exercise(
 
 fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
     id = id,
-    title = title,
+    name = name,
     description = description,
     videoUrl = videoUrl,
     type = type
@@ -31,7 +31,7 @@ fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
 fun Exercise.toRecommendationEntity(userId: Int): RecommendationEntity = RecommendationEntity(
     userId = userId,
     exerciseId = id,
-    title = title,
+    name = name,
     description = description,
     videoUrl = videoUrl,
     type = type

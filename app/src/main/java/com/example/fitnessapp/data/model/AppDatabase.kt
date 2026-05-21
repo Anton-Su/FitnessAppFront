@@ -16,7 +16,7 @@ import com.example.fitnessapp.data.local.entity.ExerciseEntity
 /**
  * Главная база данных приложения (Room).
  */
-@Database(entities = [HistoryEntity::class, UserSettingsEntity::class, ExerciseEntity::class, RecommendationEntity::class], version = 2)
+@Database(entities = [HistoryEntity::class, UserSettingsEntity::class, ExerciseEntity::class, RecommendationEntity::class], version = 4)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun userSettingsDao(): UserSettingsDao

@@ -1,13 +1,15 @@
 package com.example.fitnessapp.presentation.ui.screen
 
 import android.widget.Toast
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,8 +21,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -33,18 +37,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.fitnessapp.presentation.ui.component.FitnessTopBar
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
@@ -55,53 +65,107 @@ import java.util.Locale
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessViewModel) {
-    val history = viewModel.history.collectAsState().value
+    val remoteHistory = viewModel.remoteHistory.collectAsState().value
+    val userId = viewModel.userId.collectAsState().value
+    val caloriesBurned = viewModel.caloriesBurned.collectAsState().value
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        coroutineScope.launch {
+            val json = withContext(Dispatchers.IO) { viewModel.exportHistoryJson() }
+            if (json.isNullOrBlank()) {
+                Toast.makeText(context, "Не удалось подготовить историю", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val saved = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        output.write(json.toByteArray())
+                        output.flush()
+                    } ?: error("OutputStream is null")
+                    true
+                }.getOrElse { false }
+            }
+
+            Toast.makeText(
+                context,
+                if (saved) "История экспортирована в JSON" else "Не удалось сохранить файл",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
     var expandFraction by remember { mutableFloatStateOf(0.15f) }
     val now = LocalDate.now()
     var selectedMonth by remember { mutableStateOf(YearMonth.from(now)) }
-    val caloriesByDate = history.mapNotNull { runCatching { LocalDate.parse(it.date) to it.calories }.getOrNull() }.toMap()
-    val activeDates = caloriesByDate.keys
+    LaunchedEffect(userId) {
+        if (userId > 0) {
+            viewModel.loadRemoteHistory(userId)
+        }
+    }
+    val caloriesByDate: Map<LocalDate, Int> = remember(remoteHistory, now, caloriesBurned) {
+        val mapped = mutableMapOf<LocalDate, Int>()
+        remoteHistory.forEach { item ->
+            item.date.toCalendarLocalDate()?.let { day -> mapped[day] = item.calories }
+        }
+        if (caloriesBurned > 0) {
+            mapped[now] = maxOf(mapped[now] ?: 0, caloriesBurned)
+        }
+        mapped
+    }
+    val activeDates: Set<LocalDate> = caloriesByDate.filterValues { it > 1000 }.keys
+    val activeDaysInSelectedMonth = activeDates.count { it.year == selectedMonth.year && it.month == selectedMonth.month }
+    val caloriesToday = caloriesByDate[now] ?: 0
     val selectedDay = if (now.year == selectedMonth.year && now.month == selectedMonth.month) now else selectedMonth.atDay(1)
     val currentWeekStart = selectedDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val currentWeek = (0..6).map { currentWeekStart.plusDays(it.toLong()) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Твоя месячная жизнь, дружок",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.ExtraBold
-            )
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = { selectedMonth = selectedMonth.minusMonths(1) },
-                modifier = Modifier.weight(1f)
-            ) { Text("←") }
-
-            Button(
-                onClick = { selectedMonth = selectedMonth.plusMonths(1) },
-                modifier = Modifier.weight(1f)
-            ) { Text("→") }
-        }
+    Scaffold(
+        topBar = { FitnessTopBar(title = "Календарь", canNavigateBack = true, onBackClick = { navController.navigateUp() }) }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
 
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .animateContentSize(animationSpec = tween(durationMillis = 220))
                 .pointerInput(Unit) {
-                    detectVerticalDragGestures { _, dragAmount ->
-                        expandFraction = (expandFraction - dragAmount / 500f).coerceIn(0.15f, 1f)
-                    }
+                    // Support both vertical drag (to expand/collapse) and horizontal swipe to change months
+                    var horizontalAccum = 0f
+                    detectDragGestures(
+                        onDragStart = { horizontalAccum = 0f },
+                        onDrag = { change, dragAmount ->
+                            // vertical: adjust expandFraction
+                            val verticalDelta = dragAmount.y
+                            expandFraction = (expandFraction - verticalDelta / 500f).coerceIn(0.15f, 1f)
+
+                            // horizontal: accumulate to detect swipe on end
+                            horizontalAccum += dragAmount.x
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            val threshold = 120f // pixels
+                            if (horizontalAccum <= -threshold) {
+                                // swipe left -> next month
+                                selectedMonth = selectedMonth.plusMonths(1)
+                            } else if (horizontalAccum >= threshold) {
+                                // swipe right -> previous month
+                                selectedMonth = selectedMonth.minusMonths(1)
+                            }
+                            horizontalAccum = 0f
+                        }
+                    )
                 },
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -123,9 +187,9 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
                     style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold)
                 )
 
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().padding(start = 0.dp)) {
                     listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach {
-                        Text(text = it, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                        Text(text = it, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                     }
                 }
 
@@ -163,40 +227,40 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height((expandFraction * 40).dp))
             }
         }
-
+            Text(
+                text = "Потяни календарь вниз — он раскроется в полный месяц.",
+                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+            )
         Text(
-            text = "Активных дней в этом месяце: ${activeDates.count { it.year == selectedMonth.year && it.month == selectedMonth.month }}",
+            text = "Активных дней в этом месяце ( >= 1000 kcal) : $activeDaysInSelectedMonth",
             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
         )
-
+        Text(
+            text = "Сегодня: ${caloriesToday} kcal",
+            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
+        )
         Button(
             onClick = {
-                coroutineScope.launch {
-                    val path = java.io.File(context.filesDir, "history_export.json").absolutePath
-                    val exported = withContext(Dispatchers.IO) {
-                        viewModel.exportHistoryToFile(path)
-                    }
-                    Toast.makeText(
-                        context,
-                        if (exported) "История экспортирована в файл" else "Не удалось экспортировать историю",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                exportLauncher.launch("history_export.json")
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Экспорт истории")
         }
-
-        Text(
-            text = "Потяни календарь вниз — он раскроется в полный месяц.",
-            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-        )
+        }
     }
+}
+
+private fun String.toCalendarLocalDate(): LocalDate? {
+    val value = trim()
+    if (value.isBlank()) return null
+
+    return runCatching { OffsetDateTime.parse(value).toLocalDate() }
+        .recoverCatching { Instant.parse(value).atZone(ZoneId.systemDefault()).toLocalDate() }
+        .recoverCatching { LocalDate.parse(value) }
+        .getOrNull()
 }
 
 @Composable
@@ -206,7 +270,7 @@ private fun DayChip(modifier: Modifier = Modifier, day: LocalDate, active: Boole
             .background(
                 color = when {
                     selected -> MaterialTheme.colorScheme.primary
-                    active -> MaterialTheme.colorScheme.primaryContainer
+                    active -> MaterialTheme.colorScheme.errorContainer
                     else -> MaterialTheme.colorScheme.surfaceVariant
                 },
                 shape = RoundedCornerShape(16.dp)
@@ -216,7 +280,7 @@ private fun DayChip(modifier: Modifier = Modifier, day: LocalDate, active: Boole
     ) {
         Text(text = day.dayOfMonth.toString(), fontWeight = FontWeight.Bold)
         if (calories != null && calories > 0) {
-            Text(text = "${calories} kcal", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+            Text(text = "${calories}", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
         } else {
             Text(text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()), fontSize = 11.sp)
         }
@@ -230,7 +294,7 @@ private fun DayCell(modifier: Modifier = Modifier, day: LocalDate, currentMonth:
             .background(
                 color = when {
                     selected -> MaterialTheme.colorScheme.primary
-                    active -> MaterialTheme.colorScheme.primaryContainer
+                    active -> MaterialTheme.colorScheme.errorContainer
                     currentMonth -> MaterialTheme.colorScheme.surfaceVariant
                     else -> Color.Transparent
                 },
@@ -247,7 +311,7 @@ private fun DayCell(modifier: Modifier = Modifier, day: LocalDate, currentMonth:
             )
         )
         if (calories != null && calories > 0) {
-            Text(text = "${calories} kcal", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+            Text(text = "${calories}", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
         } else {
             Text(
                 text = if (active) "●" else "",

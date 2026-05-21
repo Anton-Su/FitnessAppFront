@@ -1,5 +1,7 @@
 ﻿package com.example.fitnessapp.data.remote.dto
 
+import com.google.gson.annotations.SerializedName
+
 /**
  * Универсальные DTO, которые покрывают как старые внутренние ожидания приложения,
  * так и новый формат ответов сервера. Поля опциональны и имеют значения по умолчанию —
@@ -9,7 +11,6 @@
 // --- Auth / User ---
 data class LoginRequestDto(
     val username: String = "",
-    val email: String = "",
     val password: String = ""
 )
 
@@ -41,19 +42,6 @@ data class LoginResponse(
     val user: UserDto? = null
 )
 
-data class UsersResponse(
-    val users: List<UserDto> = emptyList(),
-    val total: Int = 0,
-    val skip: Int = 0,
-    val limit: Int = 0
-)
-
-// --- Activity / Calories ---
-data class CaloriesRequest(
-    val steps: Int = 0,
-    val calories: Int = 0,
-    val date: String = ""
-)
 
 data class ActivityRequest(
     val user: UserDto? = null,
@@ -74,10 +62,17 @@ data class ActivityDto(
 
 // --- History ---
 data class HistoryDto(
+    @SerializedName("journal_id")
     val id: Long = 0,
+
+    @SerializedName("date")
     val date: String = "",
+
+    @SerializedName("burnt")
     val calories: Int = 0,
-    val steps: Int = 0
+
+    @SerializedName("score")
+    val score: Int = 0,
 )
 
 

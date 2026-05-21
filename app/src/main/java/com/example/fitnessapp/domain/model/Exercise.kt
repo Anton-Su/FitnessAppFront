@@ -12,7 +12,7 @@ package com.example.fitnessapp.domain.model
  */
 data class Exercise(
     val id: Int,
-    val title: String,
+    val name: String,
     val description: String,
     val videoUrl: String,
     val type: String,

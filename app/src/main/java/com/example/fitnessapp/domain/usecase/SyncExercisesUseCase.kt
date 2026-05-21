@@ -19,7 +19,7 @@ class SyncExercisesUseCase(
      */
     suspend operator fun invoke() {
         val remote = remoteRepo.fetchExercises()
-        val entities = remote.map { ExerciseEntity(it.id, it.title, it.description, it.videoUrl, it.type) }
+        val entities = remote.map { ExerciseEntity(it.id, it.name, it.description, it.videoUrl, it.type) }
         localRepo.insertAll(entities)
     }
 }

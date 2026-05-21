@@ -8,7 +8,7 @@ interface ExerciseApiRetrofit {
     @GET("exercises")
     suspend fun getExercises(): List<ExerciseDto>
 
-    @GET("exercises/{type}")
+    @GET("exercises/type/{type}")
     suspend fun getExercisesByType(
         @Path("type") type: String
     ): List<ExerciseDto>

@@ -11,6 +11,7 @@ import com.example.fitnessapp.data.remote.dto.toDomain as dtoToDomain
 import com.example.fitnessapp.domain.model.Exercise
 import com.example.fitnessapp.domain.repository.ExerciseRepository
 import com.example.fitnessapp.domain.repository.LocalExerciseRepository
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -27,6 +28,7 @@ class ExerciseRepositoryImpl(
 ) : ExerciseRepository {
     companion object {
         private const val TAG = "ExerciseRepository"
+        private val gson = Gson()
     }
 
     /**
@@ -35,7 +37,9 @@ class ExerciseRepositoryImpl(
     override fun getExercises(): Flow<List<Exercise>> = flow {
         emit(localRepo.getAll().first().map { it.toDomain() })
         try {
-            val remote = api.getExercises().map { it.dtoToDomain() }
+            val remoteDtos = api.getExercises()
+            Log.d(TAG, "GET /exercises response body: ${gson.toJson(remoteDtos)}")
+            val remote = remoteDtos.map { it.dtoToDomain() }
             localRepo.insertAll(remote.map { it.toEntity() })
             emit(localRepo.getAll().first().map { it.toDomain() })
         } catch (e: HttpException) {
@@ -87,8 +91,17 @@ class ExerciseRepositoryImpl(
      * Возвращает рекомендуемое упражнение для пользователя.
      */
     override suspend fun getRecommendation(userId: Int): Exercise? {
-        // Server may no longer provide a recommendation endpoint; prefer local cache
+        val authApi = RetrofitClient.authApi
         return try {
+            val remote = authApi.getRecommendation(userId).dtoToDomain()
+            recommendationDao.upsert(remote.toRecommendationEntity(userId))
+            localRepo.insert(remote.toEntity())
+            remote
+        } catch (e: HttpException) {
+            Log.e(TAG, "HTTP error while loading recommendation for user=$userId: ${e.code()}", e)
+            localRecommendation(userId)
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error while loading recommendation for user=$userId", e)
             localRecommendation(userId)
         } catch (e: Exception) {
             Log.e(TAG, "Error while loading local recommendation for user=$userId", e)

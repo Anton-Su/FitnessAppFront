@@ -21,6 +21,9 @@ data class UserSettingsEntity(
     @ColumnInfo(name = "name")
     val name: String,
 
+    @ColumnInfo(name = "gender")
+    val gender: String = "female",
+
     @ColumnInfo(name = "email")
     val email: String,
 

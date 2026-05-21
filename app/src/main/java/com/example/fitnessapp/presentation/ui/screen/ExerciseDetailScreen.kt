@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
+import android.util.Log
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -25,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
@@ -42,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import com.example.fitnessapp.domain.model.Exercise
+import com.example.fitnessapp.presentation.ui.component.FitnessTopBar
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
 import com.example.fitnessapp.service.SecondsCounterService
 import com.example.fitnessapp.data.remote.RetrofitClient
@@ -59,14 +63,35 @@ import java.time.LocalDate
  * Экран деталей упражнения.
  */
 @Composable
-fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, viewModel: FitnessViewModel) {
+fun ExerciseDetailScreen(
+    navController: NavHostController,
+    exerciseId: Int,
+    fromRecommendation: Boolean,
+    viewModel: FitnessViewModel
+) {
     var exercise by remember { mutableStateOf<Exercise?>(null) }
     var seconds by remember { mutableStateOf(0) }
     var isRunning by remember { mutableStateOf(false) }
+    var sessionSummary by remember { mutableStateOf<ExerciseSessionSummary?>(null) }
     val scrollState = rememberScrollState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-
+    val weight = viewModel.weight.collectAsState().value
+    Log.e("ExerciseDetail", "Current weight: $weight kg, base calories per second: ${exercise?.caloriesBurnt} kcal/s")
+    val met = (exercise?.caloriesBurnt ?: 0.0).takeIf { it > 0.0 } ?: 0.0
+//    val met = remember(exercise?.type) {
+//        when (exercise?.type?.lowercase()) {
+//            "кардио", "cardio" -> 8.0
+//            "силовая", "strength" -> 6.0
+//            "йога", "yoga" -> 3.0
+//            "растяжка", "stretching" -> 2.0
+//            else -> 4.0
+//        }
+//    }
+    val liveKcalPerMin = (met * weight * 3.5) / 200.0
+    val liveKcal = (liveKcalPerMin * (seconds / 60.0)).coerceAtLeast(0.0)
+//    val liveKcal = (liveKcalPerSecond * seconds).coerceAtLeast(0.0)
+//    Log.e("ExerciseDetail", "Live kcal per second: $liveKcalPerSecond, total live kcal: $liveKcal")
     LaunchedEffect(exerciseId) {
         exercise = viewModel.loadExerciseById(exerciseId)
     }
@@ -93,15 +118,26 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
+    Scaffold(
+        topBar = {
+            FitnessTopBar(
+                title = exercise?.name ?: "Упражнение",
+                canNavigateBack = true,
+                onBackClick = { navController.navigate("exercises") }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(scrollState)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+
         Text(
-            text = exercise?.title ?: "Упражнение #$exerciseId",
+            text = exercise?.name ?: "Упражнение #$exerciseId",
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.ExtraBold
@@ -121,7 +157,7 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
         }
 
         exercise?.let {
-            Text(text = "Тип упражнения: ${it.type}", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "${it.type.uppercase()}", style = MaterialTheme.typography.bodyMedium)
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -135,10 +171,6 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
                     Text(
                         text = "Как надо",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
-                    )
-                    Text(
-                        text = "Смотри на технику и повторяй движение за правильным примером.",
-                        style = MaterialTheme.typography.bodyMedium
                     )
                     ExerciseVideoPreview(videoUrl = it.videoUrl)
                 }
@@ -163,7 +195,11 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
                     )
                 )
                 Text(
-                    text = "Эти секунды не сохраняются и исчезнут после завершения упражнения.",
+                    text = "Прямо сейчас: ${liveKcal.roundToInt()} ккал",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    text = "Калории считаются в реальном времени.",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -173,6 +209,7 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
             onClick = {
                 seconds = 0
                 isRunning = true
+                sessionSummary = null
                 ContextCompat.startForegroundService(
                     context,
                     Intent(context, SecondsCounterService::class.java).apply {
@@ -180,7 +217,8 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
                     }
                 )
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isRunning
         ) {
             Text("Выполнить упражнение")
         }
@@ -188,29 +226,22 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
         Button(
             onClick = {
                 isRunning = false
-                // Рассчитать калории по времени и добавить к дневному счёту, затем попытаться отправить на сервер.
                 val secs = seconds
                 seconds = 0
-                // рассчитываем калории: используем простую MET-оценку в зависимости от типа
-                val met = when (exercise?.type?.lowercase()) {
-                    "кардио", "cardio" -> 8.0
-                    "силовая", "strength" -> 6.0
-                    "йога", "yoga" -> 3.0
-                    "растяжка", "stretching" -> 2.0
-                    else -> 4.0
-                }
-                // минутах
                 val minutes = secs / 60.0
+                val kcal = (liveKcalPerMin * minutes).coerceAtLeast(0.0)
+                val rounded = kcal.roundToInt()
+                if (secs > 0) {
+                    sessionSummary = ExerciseSessionSummary(durationSeconds = secs, calories = rounded)
+                }
+                if (fromRecommendation && secs > 0) {
+                    viewModel.markDoEverytimeTaskDone()
+                }
+
                 coroutineScope.launch {
                     try {
-                        // добавляем локально
-                         val weight = viewModel.weight.value
-                         val kcalPerMin = (met * weight * 3.5) / 200.0
-                         val kcal = (kcalPerMin * minutes).coerceAtLeast(0.0)
-                         val rounded = kcal.roundToInt()
-                         viewModel.addCalories(rounded)
+                        viewModel.addCalories(rounded)
 
-                        // пытаемся отправить на сервер
                         withContext(Dispatchers.IO) {
                             try {
                                 val settings = SettingsDataStore(context)
@@ -228,15 +259,14 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
                                             goal_achieved = false
                                         )
                                     )
-                                    // при успехе обнулим локальные калории
                                     settings.setCalories(0)
                                 }
                             } catch (_: Exception) {
-                                // не удалось отправить — оставляем локально
+                                // Отправка не удалась: локальный счётчик уже обновлён.
                             }
                         }
                     } catch (_: Exception) {
-                        // игнорируем ошибки расчёта/сохранения
+                        // Игнорируем ошибки расчёта/сохранения для UX без падений.
                     }
                 }
 
@@ -253,10 +283,30 @@ fun ExerciseDetailScreen(navController: NavHostController, exerciseId: Int, view
             Text("Закончить упражнение")
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        sessionSummary?.let { summary ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Ты красавчик!",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                    )
+                    Text(
+                        text = "Сжёг ${summary.calories} ккал за ${formatDurationHuman(summary.durationSeconds)}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "Айда ещё",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
 
-        Button(onClick = { navController.navigate("exercises") }) {
-            Text("Назад к списку")
+        Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
@@ -388,5 +438,22 @@ private fun formatSeconds(seconds: Int): String {
     val h = seconds / 3600
     val m = (seconds % 3600) / 60
     val s = seconds % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
+    return "%02d:%02d:%02d".format(h, m, s)
 }
+
+private data class ExerciseSessionSummary(
+    val durationSeconds: Int,
+    val calories: Int
+)
+
+private fun formatDurationHuman(seconds: Int): String {
+    val h = seconds / 3600
+    val m = (seconds % 3600) / 60
+    val s = seconds % 60
+    return when {
+        h > 0 -> "${h} ч ${m} мин ${s} сек"
+        m > 0 -> "${m} мин ${s} сек"
+        else -> "${s} сек"
+    }
+}
+

@@ -33,9 +33,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.fitnessapp.domain.model.Gender
+import com.example.fitnessapp.presentation.ui.component.GenderSelector
 import com.example.fitnessapp.presentation.viewmodel.AuthUiState
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
+import com.example.fitnessapp.presentation.util.EmailValidator
 import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
 
 /**
  * Экран регистрации пользователя.
@@ -44,14 +49,14 @@ import kotlinx.coroutines.delay
 fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewModel) {
     val scrollState = rememberScrollState()
     val registrationState by viewModel.registrationState.collectAsState()
-    val savedEmail by viewModel.email.collectAsState()
 
     var firstName by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable(savedEmail) { mutableStateOf(savedEmail) }
+    var email by rememberSaveable { mutableStateOf("") }
     var age by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var height by rememberSaveable { mutableStateOf("") }
     var weight by rememberSaveable { mutableStateOf("") }
+    var gender by rememberSaveable { mutableStateOf(Gender.FEMALE) }
 
     LaunchedEffect(registrationState) {
         if (registrationState is AuthUiState.Success || registrationState is AuthUiState.Error) {
@@ -66,11 +71,26 @@ fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewM
         }
     }
 
+    val ageVal = age.toIntOrNull() ?: 0
+    val heightVal = height.toDoubleOrNull() ?: 0.0
+    val weightVal = weight.toDoubleOrNull() ?: 0.0
+
+    val ageError = if (age.isNotBlank() && (ageVal < 13 || ageVal > 120)) "Возраст должен быть от 13 до 120" else ""
+    val heightError = if (height.isNotBlank() && (heightVal < 100 || heightVal > 250)) "Рост должен быть от 100 до 250 см" else ""
+    val weightError = if (weight.isNotBlank() && (weightVal < 30 || weightVal > 200)) "Вес должен быть от 30 до 200 кг" else ""
+    val emailError = if (email.isNotBlank() && !EmailValidator.isValid(email)) EmailValidator.getErrorMessage(email) else ""
+
+    val isValid = firstName.isNotBlank() && email.isNotBlank() && emailError.isEmpty() &&
+                  age.isNotBlank() && ageError.isEmpty() &&
+                  password.isNotBlank() &&
+                  height.isNotBlank() && heightError.isEmpty() &&
+                   weight.isNotBlank() && weightError.isEmpty()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(20.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Card(
@@ -130,9 +150,24 @@ fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewM
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = if (emailError.isNotEmpty()) 1.dp else 0.dp,
+                    color = if (emailError.isNotEmpty()) Color.Red else Color.Transparent,
+                    shape = RoundedCornerShape(4.dp)
+                ),
             label = { Text("Email") },
-            singleLine = true
+            singleLine = true,
+            isError = emailError.isNotEmpty()
+        )
+        if (emailError.isNotEmpty()) {
+            Text(emailError, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+        }
+
+        GenderSelector(
+            selectedGender = gender,
+            onGenderSelected = { gender = it }
         )
 
         OutlinedTextField(
@@ -140,8 +175,12 @@ fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewM
             onValueChange = { age = it.filter(Char::isDigit).take(3) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Возраст") },
-            singleLine = true
+            singleLine = true,
+            isError = ageError.isNotEmpty()
         )
+        if (ageError.isNotEmpty()) {
+            Text(ageError, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+        }
 
         OutlinedTextField(
             value = password,
@@ -157,21 +196,30 @@ fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewM
             onValueChange = { height = it.filter { c -> c.isDigit() || c == '.' }.take(5) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Рост (см)") },
-            singleLine = true
+            singleLine = true,
+            isError = heightError.isNotEmpty()
         )
+        if (heightError.isNotEmpty()) {
+            Text(heightError, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+        }
 
         OutlinedTextField(
             value = weight,
             onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' }.take(5) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Вес (кг)") },
-            singleLine = true
+            singleLine = true,
+            isError = weightError.isNotEmpty()
         )
+        if (weightError.isNotEmpty()) {
+            Text(weightError, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+        }
 
         Button(
             onClick = {
                 viewModel.registerUser(
                     firstName = firstName.trim(),
+                    gender = gender,
                     email = email.trim(),
                     age = age.toIntOrNull() ?: 0,
                     password = password,
@@ -181,7 +229,7 @@ fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewM
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
-            enabled = firstName.isNotBlank() && email.isNotBlank() && age.isNotBlank() && password.isNotBlank() && height.isNotBlank() && weight.isNotBlank() && registrationState !is AuthUiState.Loading,
+            enabled = isValid && registrationState !is AuthUiState.Loading,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text(text = if (registrationState is AuthUiState.Loading) "Отправляем..." else "Я сделал это!")

@@ -8,9 +8,11 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.content.pm.ServiceInfo
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.fitnessapp.MainActivity
 import com.example.fitnessapp.R
@@ -38,7 +40,10 @@ class SecondsCounterService : Service() {
             if (isRunning) {
                 seconds += 1
                 // Broadcast update
-                val tick = Intent(ACTION_TICK).apply { putExtra(EXTRA_SECONDS, seconds) }
+                val tick = Intent(ACTION_TICK).apply { 
+                    putExtra(EXTRA_SECONDS, seconds)
+                    setPackage(packageName)
+                }
                 sendBroadcast(tick)
 
                 // update notification
@@ -52,7 +57,21 @@ class SecondsCounterService : Service() {
     override fun onCreate() {
         super.onCreate()
         createChannel()
-        startForeground(NOTIF_ID, buildNotification(seconds))
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIF_ID, buildNotification(seconds), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIF_ID, buildNotification(seconds))
+            }
+        } catch (e: Exception) {
+            Log.e("SecondsCounterService", "Failed to start foreground", e)
+            // If startForeground fails, try without type (older API)
+            try {
+                startForeground(NOTIF_ID, buildNotification(seconds))
+            } catch (e2: Exception) {
+                Log.e("SecondsCounterService", "Failed to start foreground even without type", e2)
+            }
+        }
         handler.post(tickRunnable)
     }
 
@@ -90,7 +109,10 @@ class SecondsCounterService : Service() {
     }
 
     private fun sendSecondsTick() {
-        val tick = Intent(ACTION_TICK).apply { putExtra(EXTRA_SECONDS, seconds) }
+        val tick = Intent(ACTION_TICK).apply { 
+            putExtra(EXTRA_SECONDS, seconds)
+            setPackage(packageName)
+        }
         sendBroadcast(tick)
     }
 

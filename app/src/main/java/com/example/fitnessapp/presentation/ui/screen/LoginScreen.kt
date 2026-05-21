@@ -40,15 +40,24 @@ import kotlinx.coroutines.delay
 @Composable
 fun LoginScreen(navController: NavHostController, viewModel: FitnessViewModel) {
     val loginState by viewModel.loginState.collectAsState()
-    val savedEmail by viewModel.email.collectAsState()
-    var email by rememberSaveable(savedEmail) { mutableStateOf(savedEmail) }
+    var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    val userId by viewModel.userId.collectAsState()
+
+    LaunchedEffect(userId) {
+        if (userId > 0) {
+            // уже залогинен — не пускаем на экран логина
+            navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
+    }
 
     LaunchedEffect(loginState) {
 
         // Специально для демонстрации успешного входа, убери условие "|| true" для реальной логики!!!!
-
-        if (loginState is AuthUiState.Success || true) {
+        // || true
+        if (loginState is AuthUiState.Success) {
             delay(2000)
             viewModel.resetLoginState()
             navController.navigate("home") {
@@ -78,7 +87,7 @@ fun LoginScreen(navController: NavHostController, viewModel: FitnessViewModel) {
                     )
                 )
                 Text(
-                    text = "Введи логин и пароль, и продолжишь жить по-новому.",
+                    text = "Введи почту и пароль, и продолжишь жить по-новому.",
                     style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif)
                 )
             }

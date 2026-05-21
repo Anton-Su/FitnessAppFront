@@ -11,8 +11,8 @@ import androidx.room.PrimaryKey
 data class ExerciseEntity(
     @PrimaryKey
     val id: Int,
-    @ColumnInfo(name = "title")
-    val title: String,
+    @ColumnInfo(name = "name")
+    val name: String,
     @ColumnInfo(name = "description")
     val description: String,
     @ColumnInfo(name = "video_url")

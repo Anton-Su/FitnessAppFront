@@ -3,36 +3,23 @@ package com.example.fitnessapp.data.remote.dto
 import com.example.fitnessapp.domain.model.Exercise
 
 /**
- * Универсальный DTO для упражнений — поддерживает старый внутренний формат
- * (id/title/videoUrl) и новый серверный формат (exercise_id/name/file_path).
- * Все поля опциональны/с дефолтами, чтобы действовать как плейсхолдеры при отсутствии данных.
+ * Универсальный DTO для упражнений
  */
 data class ExerciseDto(
     // новый серверный формат
-    val exercise_id: Long? = null,
+    val exercise_id: Int,
     val name: String = "",
-    val file_path: String = "",
-    // старый внутренний формат
-    val id: Int? = null,
-    val title: String = "",
     val description: String = "",
-    val videoUrl: String = "",
+    val file_path: String = "",
     val type: String = "",
-    val caloriesBurnt: Double = 0.0
+    val calories_burnt: Double
 )
 
 fun ExerciseDto.toDomain(): Exercise = Exercise(
-    id = (exercise_id?.toInt() ?: id ?: 0),
-    title = if (title.isNotBlank()) title else name,
+    id = exercise_id,
+    name = name,
     description = description,
-    videoUrl = if (videoUrl.isNotBlank()) videoUrl else file_path,
-    type = if (type.isNotBlank()) type else run {
-        when {
-            name.contains("cardio", ignoreCase = true) -> "cardio"
-            name.contains("strength", ignoreCase = true) -> "strength"
-            name.contains("flexibility", ignoreCase = true) -> "flexibility"
-            else -> "other"
-        }
-    },
-    caloriesBurnt = caloriesBurnt
+    videoUrl = file_path,
+    type = type.ifBlank { "other" },
+    caloriesBurnt = calories_burnt
 )

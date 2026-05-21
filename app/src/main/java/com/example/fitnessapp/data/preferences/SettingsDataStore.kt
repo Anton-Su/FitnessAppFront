@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
@@ -30,6 +31,8 @@ class SettingsDataStore(private val context: Context) {
         val AGE = intPreferencesKey("age")
         /** Ключ для хранения имени пользователя (String). */
         val NAME = stringPreferencesKey("name")
+        /** Ключ для хранения пола пользователя (String): male / female. */
+        val GENDER = stringPreferencesKey("gender")
         /** Ключ для хранения идентификатора пользователя (Int). */
         val USER_ID = intPreferencesKey("user_id")
         /** Ключ для хранения фамилии пользователя (String). */
@@ -52,6 +55,10 @@ class SettingsDataStore(private val context: Context) {
         val STEPS = intPreferencesKey("steps")
         /** Ключ для хранения текущих сожжённых калорий за день. */
         val CALORIES = intPreferencesKey("calories")
+        /** Флаг дневной задачи: выполнил рекомендованное упражнение сегодня. */
+        val DO_EVERYTIME_TASK = booleanPreferencesKey("do_everytime_task")
+        /** Дата, когда последний раз проверяли/сбрасывали DO_EVERYTIME_TASK (yyyy-MM-dd). */
+        val DO_EVERYTIME_TASK_DATE = stringPreferencesKey("do_everytime_task_date")
     }
 
     /**
@@ -68,6 +75,14 @@ class SettingsDataStore(private val context: Context) {
     val nameFlow: Flow<String> = context.dataStore.data
         .map { prefs: Preferences ->
             prefs[NAME] ?: ""
+        }
+
+    /**
+     * Поток с текущим полом пользователя (String). По умолчанию female.
+     */
+    val genderFlow: Flow<String> = context.dataStore.data
+        .map { prefs: Preferences ->
+            prefs[GENDER] ?: "female"
         }
 
     /**
@@ -145,6 +160,14 @@ class SettingsDataStore(private val context: Context) {
         }
 
     /**
+     * Поток флага дневной задачи с рекомендованным упражнением.
+     */
+    val doEverytimeTaskFlow: Flow<Boolean> = context.dataStore.data
+        .map { prefs: Preferences ->
+            prefs[DO_EVERYTIME_TASK] ?: false
+        }
+
+    /**
      * Записать возраст пользователя.
      *
      * @param value значение возраста (Int).
@@ -163,6 +186,15 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setName(value: String) {
         context.dataStore.edit { prefs: MutablePreferences ->
             prefs[NAME] = value
+        }
+    }
+
+    /**
+     * Записать пол пользователя.
+     */
+    suspend fun setGender(value: String) {
+        context.dataStore.edit { prefs: MutablePreferences ->
+            prefs[GENDER] = value
         }
     }
 
@@ -252,6 +284,30 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setCalories(value: Int) {
         context.dataStore.edit { prefs: MutablePreferences ->
             prefs[CALORIES] = value
+        }
+    }
+
+    /**
+     * Отметить выполнение рекомендованного упражнения за текущий день.
+     */
+    suspend fun setDoEverytimeTask(value: Boolean) {
+        context.dataStore.edit { prefs: MutablePreferences ->
+            prefs[DO_EVERYTIME_TASK] = value
+            prefs[DO_EVERYTIME_TASK_DATE] = LocalDate.now().toString()
+        }
+    }
+
+    /**
+     * Сбрасывает дневной флаг при смене календарного дня.
+     */
+    suspend fun resetDoEverytimeTaskIfNewDay() {
+        val today = LocalDate.now().toString()
+        context.dataStore.edit { prefs: MutablePreferences ->
+            val savedDate = prefs[DO_EVERYTIME_TASK_DATE] ?: ""
+            if (savedDate != today) {
+                prefs[DO_EVERYTIME_TASK] = false
+                prefs[DO_EVERYTIME_TASK_DATE] = today
+            }
         }
     }
 

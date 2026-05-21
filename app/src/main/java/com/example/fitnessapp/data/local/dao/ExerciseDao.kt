@@ -18,7 +18,7 @@ interface ExerciseDao {
     /**
      * Возвращает поток со списком всех упражнений, отсортированных по названию (ASC).
      */
-    @Query("SELECT * FROM exercises ORDER BY title ASC")
+    @Query("SELECT * FROM exercises ORDER BY name ASC")
     fun getAllExercises(): Flow<List<ExerciseEntity>>
 
     /**

@@ -13,7 +13,6 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
-import retrofit2.http.Query
 import okhttp3.ResponseBody
 
 interface AutorizeApiRetrofit {
@@ -27,36 +26,27 @@ interface AutorizeApiRetrofit {
         @Body request: LoginRequestDto
     ): LoginResponse
 
-    // Activities endpoints (kept for compatibility)
-    @GET("activities")
-    suspend fun getActivities(): List<ActivityDto>
-
     @POST("activities")
     suspend fun createActivity(
         @Body request: ActivityRequest
     ): ActivityDto
 
-    @GET("activities/{id}")
-    suspend fun getActivityById(
-        @Path("id") id: Long
-    ): ActivityDto
+//    @GET("activities/{id}")
+//    suspend fun getActivityById(
+//        @Path("id") id: Long
+//    ): ActivityDto
 
-    @PUT("activities/{id}")
-    suspend fun updateActivity(
-        @Path("id") id: Long,
-        @Body request: ActivityRequest
-    ): ActivityDto
-
-    @DELETE("activities/{id}")
-    suspend fun deleteActivity(
-        @Path("id") id: Long
-    ): ResponseBody
 
     // User history (backward compatible signature)
-    @GET("users/{id}/history")
+    @GET("journal/user/{id}/history")
     suspend fun getHistory(
         @Path("id") id: Int
     ): List<HistoryDto>
+
+    @GET("users/{id}/recommendation")
+    suspend fun getRecommendation(
+        @Path("id") id: Int
+    ): ExerciseDto
 
     // User profile update (kept, but server might ignore unknown fields)
     @PUT("users/{id}")
@@ -64,4 +54,9 @@ interface AutorizeApiRetrofit {
         @Path("id") id: Int,
         @Body request: UserDto
     ): UserDto
+
+    @DELETE("users/{id}")
+    suspend fun deleteUser(
+        @Path("id") id: Int
+    ): ResponseBody
 }
