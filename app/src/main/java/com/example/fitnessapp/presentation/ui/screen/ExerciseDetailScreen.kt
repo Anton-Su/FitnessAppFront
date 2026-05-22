@@ -48,16 +48,11 @@ import com.example.fitnessapp.domain.model.Exercise
 import com.example.fitnessapp.presentation.ui.component.FitnessTopBar
 import com.example.fitnessapp.presentation.viewmodel.FitnessViewModel
 import com.example.fitnessapp.service.SecondsCounterService
-import com.example.fitnessapp.data.remote.RetrofitClient
-import com.example.fitnessapp.data.remote.dto.ActivityRequest
-import com.example.fitnessapp.data.preferences.TokenManager
-import com.example.fitnessapp.data.preferences.SettingsDataStore
+import com.example.fitnessapp.worker.CaloriesUploadScheduler
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
-import java.time.LocalDate
 
 /**
  * Экран деталей упражнения.
@@ -242,31 +237,9 @@ fun ExerciseDetailScreen(
 
                 coroutineScope.launch {
                     try {
-                        viewModel.addCalories(rounded)
-
-                        withContext(Dispatchers.IO) {
-                            try {
-                                val settings = SettingsDataStore(context)
-                                val tokenManager = TokenManager(context)
-                                RetrofitClient.init(context)
-                                tokenManager.loadTokens()
-                                val steps = settings.stepsFlow.first()
-                                val caloriesNow = settings.caloriesFlow.first()
-                                if (caloriesNow > 0) {
-                                    RetrofitClient.authApi.createActivity(
-                                        request = ActivityRequest(
-                                            activity_date = LocalDate.now().toString(),
-                                            steps = steps,
-                                            burnt = caloriesNow,
-                                            goal_achieved = false
-                                        )
-                                    )
-                                    settings.setCalories(0)
-                                }
-                            } catch (_: Exception) {
-                                // Отправка не удалась: локальный счётчик уже обновлён.
-                            }
-                        }
+                        Log.e("ExerciseDetail", "Exercise completed: duration ${formatDurationHuman(secs)}, calories: $rounded kcal")
+                        withContext(Dispatchers.IO) { viewModel.addCalories(rounded) }
+                        CaloriesUploadScheduler.scheduleNext(context)
                     } catch (_: Exception) {
                         // Игнорируем ошибки расчёта/сохранения для UX без падений.
                     }

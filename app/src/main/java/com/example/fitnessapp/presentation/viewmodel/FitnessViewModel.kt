@@ -396,4 +396,24 @@ class FitnessViewModel(
             null
         }
     }
+
+    suspend fun exportRemoteHistoryJson(): String? {
+        return try {
+            val repo = authRepository ?: return null
+            val userId = settingsDataStore.userIdFlow.first()
+            if (userId <= 0) {
+                Log.e(TAG, "exportRemoteHistoryJson: userId not set")
+                return null
+            }
+            val result = repo.exportRemoteHistoryJson(userId)
+            result.getOrNull().also {
+                if (it == null) {
+                    Log.e(TAG, "exportRemoteHistoryJson failed: ${result.exceptionOrNull()?.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "exportRemoteHistoryJson failed", e)
+            null
+        }
+    }
 }

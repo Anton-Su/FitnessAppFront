@@ -292,6 +292,8 @@ class SettingsDataStore(private val context: Context) {
      */
     suspend fun setDoEverytimeTask(value: Boolean) {
         context.dataStore.edit { prefs: MutablePreferences ->
+            // prefs[DO_EVERYTIME_TASK] = false
+            // сделано для проверки, что при каждом вызове флаг будет обновляться и сохраняться дата последнего обновления
             prefs[DO_EVERYTIME_TASK] = value
             prefs[DO_EVERYTIME_TASK_DATE] = LocalDate.now().toString()
         }

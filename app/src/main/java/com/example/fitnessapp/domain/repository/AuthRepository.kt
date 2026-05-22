@@ -17,4 +17,5 @@ interface AuthRepository {
     suspend fun getHistory(userId: Int): Result<List<HistoryDto>>
     suspend fun deleteUser(userId: Int): Result<Unit>
     suspend fun logout()
+    suspend fun exportRemoteHistoryJson(userId: Int): Result<String>
 }

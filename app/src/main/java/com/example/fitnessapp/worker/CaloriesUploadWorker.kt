@@ -11,6 +11,7 @@ import com.example.fitnessapp.data.remote.dto.ActivityRequest
 import kotlinx.coroutines.flow.first
 import retrofit2.HttpException
 import java.io.IOException
+import java.time.LocalDate
 import kotlin.math.roundToInt
 
 class CaloriesUploadWorker(
@@ -34,19 +35,26 @@ class CaloriesUploadWorker(
             }
 
             val steps = settings.stepsFlow.first().coerceAtLeast(0)
-            val calories = maxOf(0, (steps * 0.04).roundToInt())
+            val exerciseCalories = settings.caloriesFlow.first().coerceAtLeast(0)
+            val stepCalories = maxOf(0, (steps * 0.04).roundToInt())
+            val totalCalories = stepCalories + exerciseCalories
 
-            // send as activity; server will associate with authenticated user
+            if (steps <= 0 && exerciseCalories <= 0) {
+                return Result.success()
+            }
+
+            // send accumulated daily activity (steps + exercise calories) once per day
             RetrofitClient.authApi.createActivity(
                 request = ActivityRequest(
-                    activity_date = java.time.LocalDate.now().toString(),
+                    activity_date = LocalDate.now().minusDays(1).toString(),
                     steps = steps,
-                    burnt = calories,
+                    burnt = totalCalories,
                     goal_achieved = false
                 )
             )
 
             settings.setSteps(0)
+            settings.setCalories(0)
 
             Result.success()
         } catch (e: HttpException) {

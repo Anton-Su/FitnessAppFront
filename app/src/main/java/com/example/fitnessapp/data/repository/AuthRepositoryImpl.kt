@@ -138,6 +138,9 @@ class AuthRepositoryImpl(
     override suspend fun deleteUser(userId: Int): Result<Unit> {
         return try {
             api.deleteUser(userId)
+            // Clear token immediately after successful deletion to prevent 401 errors on subsequent requests
+            tokenManager.clearTokens()
+            Log.d(TAG, "User deleted and token cleared successfully")
             Result.success(Unit)
         } catch (e: HttpException) {
             Log.e(TAG, "HTTP error while deleting user: ${e.code()}", e)
@@ -153,5 +156,23 @@ class AuthRepositoryImpl(
 
     override suspend fun logout() {
         tokenManager.clearTokens()
+    }
+
+    override suspend fun exportRemoteHistoryJson(userId: Int): Result<String> {
+        return try {
+            val remoteHistory = api.getHistory(userId)
+            val json = gson.toJson(remoteHistory)
+            Log.d(TAG, "exportRemoteHistoryJson: exported ${remoteHistory.size} records, JSON length=${json.length}")
+            Result.success(json)
+        } catch (e: HttpException) {
+            Log.e(TAG, "HTTP error while exporting remote history: ${e.code()}", e)
+            Result.failure(e)
+        } catch (e: IOException) {
+            Log.e(TAG, "Network error while exporting remote history", e)
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error while exporting remote history", e)
+            Result.failure(e)
+        }
     }
 }

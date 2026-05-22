@@ -1,6 +1,7 @@
 package com.example.fitnessapp.presentation.ui.screen
 
 import android.widget.Toast
+import android.util.Log
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -74,13 +75,19 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val scope = coroutineScope
-        scope.launch {
-            val json = withContext(Dispatchers.IO) { viewModel.exportHistoryJson() }
-            if (json.isNullOrBlank()) {
-                Toast.makeText(context, "Не удалось подготовить историю", Toast.LENGTH_SHORT).show()
+        coroutineScope.launch {
+            // Export remote history (from server) instead of local history
+            val json = withContext(Dispatchers.IO) { viewModel.exportRemoteHistoryJson() }
+            if (json == null) {
+                Log.e("ActivityCalendar", "exportRemoteHistoryJson returned null — cannot export history")
+                Toast.makeText(context, "Не удалось подготовить историю (пустой результат)", Toast.LENGTH_SHORT).show()
                 return@launch
             }
+
+            try {
+                Log.e("ActivityCalendar", "exportRemoteHistoryJson length=${json.length}")
+                Log.e("ActivityCalendar", "exportRemoteHistoryJson preview=${json.take(200)}")
+            } catch (_: Exception) { /* ignore logging issues */ }
 
             val saved = withContext(Dispatchers.IO) {
                 runCatching {
