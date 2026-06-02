@@ -21,6 +21,8 @@ data class RecommendationEntity(
     @ColumnInfo(name = "video_url")
     val videoUrl: String,
     @ColumnInfo(name = "type")
-    val type: String
+    val type: String,
+    @ColumnInfo(name = "calories_burnt")
+    val caloriesBurnt: Double = 0.0
 )
 

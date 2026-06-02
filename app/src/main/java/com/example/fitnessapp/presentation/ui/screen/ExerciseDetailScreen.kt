@@ -1,30 +1,39 @@
 package com.example.fitnessapp.presentation.ui.screen
+import coil.compose.AsyncImage
 
+import androidx.compose.ui.graphics.Color
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Color
+import android.net.Uri
 import android.util.Log
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,11 +46,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import com.example.fitnessapp.domain.model.Exercise
@@ -53,6 +66,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
+import androidx.core.net.toUri
 
 /**
  * Экран деталей упражнения.
@@ -262,7 +276,7 @@ fun ExerciseDetailScreen(
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
                         )
                         Text(
-                            text = "Сжёг ${summary.calories} ккал за ${formatDurationHuman(summary.durationSeconds)}",
+                            text = "Сожжено ${summary.calories} ккал за ${formatDurationHuman(summary.durationSeconds)}",
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Text(
@@ -278,126 +292,126 @@ fun ExerciseDetailScreen(
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-private fun ExerciseVideoPreview(videoUrl: String) {
-    val html = remember(videoUrl) {
-        buildVideoPreviewHtml(videoUrl)
-    }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        AndroidView(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp),
-            factory = { context ->
-                WebView(context).apply {
-                    setBackgroundColor(Color.TRANSPARENT)
-                    settings.apply {
-                        javaScriptEnabled = true
-                        domStorageEnabled = true
-                        mediaPlaybackRequiresUserGesture = false
-                        cacheMode = WebSettings.LOAD_DEFAULT
-                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                        userAgentString = "Mozilla/5.0 (Linux; Android 12; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36"
-                    }
-                    webChromeClient = WebChromeClient()
-                    webViewClient = WebViewClient()
-                }
-            },
-            update = { webView ->
-                // ВАЖНО: baseUrl должен быть https://www.youtube.com, иначе
-                // YouTube IFrame API заблокирует запросы из-за file:// origin
-                webView.loadDataWithBaseURL(
-                    "https://www.youtube.com",
-                    html,
-                    "text/html",
-                    "UTF-8",
-                    null
-                )
-            }
-        )
-    }
-}
+//@SuppressLint("SetJavaScriptEnabled")
+//@Composable
+//private fun ExerciseVideoPreview(videoUrl: String) {
+//    val html = remember(videoUrl) {
+//        buildVideoPreviewHtml(videoUrl)
+//    }
+//    Card(
+//        modifier = Modifier.fillMaxWidth(),
+//        shape = RoundedCornerShape(20.dp),
+//        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+//    ) {
+//        AndroidView(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(220.dp),
+//            factory = { context ->
+//                WebView(context).apply {
+//                    setBackgroundColor(Color.TRANSPARENT)
+//                    settings.apply {
+//                        javaScriptEnabled = true
+//                        domStorageEnabled = true
+//                        mediaPlaybackRequiresUserGesture = false
+//                        cacheMode = WebSettings.LOAD_DEFAULT
+//                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+//                        userAgentString = "Mozilla/5.0 (Linux; Android 12; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36"
+//                    }
+//                    webChromeClient = WebChromeClient()
+//                    webViewClient = WebViewClient()
+//                }
+//            },
+//            update = { webView ->
+//                // ВАЖНО: baseUrl должен быть https://www.youtube.com, иначе
+//                // YouTube IFrame API заблокирует запросы из-за file:// origin
+//                webView.loadDataWithBaseURL(
+//                    "https://www.youtube.com",
+//                    html,
+//                    "text/html",
+//                    "UTF-8",
+//                    null
+//                )
+//            }
+//        )
+//    }
+//}
 
-private fun buildVideoPreviewHtml(videoUrl: String): String {
-    val embedUrl = videoUrl.toYouTubeEmbedUrl()
+//private fun buildVideoPreviewHtml(videoUrl: String): String {
+//    val embedUrl = videoUrl.toYouTubeEmbedUrl()
+//
+//    return if (embedUrl != null) {
+//        val videoId = embedUrl.substringAfterLast("/").substringBefore("?")
+//        """
+//            <!DOCTYPE html>
+//            <html>
+//            <head>
+//                <meta charset="UTF-8">
+//                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//                <style>
+//                    * { margin: 0; padding: 0; box-sizing: border-box; }
+//                    html, body { width: 100%; height: 100%; background: transparent; }
+//                    iframe { width: 100%; height: 100%; border: none; display: block; }
+//                </style>
+//            </head>
+//            <body>
+//                <iframe
+//                    src="https://www.youtube.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1"
+//                    allowfullscreen
+//                    allow="autoplay; encrypted-media; fullscreen">
+//                </iframe>
+//            </body>
+//            </html>
+//        """.trimIndent()
+//    } else {
+//        """
+//            <!DOCTYPE html>
+//            <html>
+//            <head>
+//                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//                <style>
+//                    html, body {
+//                        margin: 0;
+//                        padding: 0;
+//                        width: 100%;
+//                        height: 100%;
+//                        background: transparent;
+//                        overflow: hidden;
+//                    }
+//                    video {
+//                        width: 100%;
+//                        height: 100%;
+//                        background: #000;
+//                    }
+//                </style>
+//            </head>
+//            <body>
+//                <video controls playsinline>
+//                    <source src="$videoUrl">
+//                    Ваш браузер не поддерживает встроенное видео.
+//                </video>
+//            </body>
+//            </html>
+//        """.trimIndent()
+//    }
+//}
 
-    return if (embedUrl != null) {
-        val videoId = embedUrl.substringAfterLast("/").substringBefore("?")
-        """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    html, body { width: 100%; height: 100%; background: transparent; }
-                    iframe { width: 100%; height: 100%; border: none; display: block; }
-                </style>
-            </head>
-            <body>
-                <iframe
-                    src="https://www.youtube.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1"
-                    allowfullscreen
-                    allow="autoplay; encrypted-media; fullscreen">
-                </iframe>
-            </body>
-            </html>
-        """.trimIndent()
-    } else {
-        """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    html, body {
-                        margin: 0;
-                        padding: 0;
-                        width: 100%;
-                        height: 100%;
-                        background: transparent;
-                        overflow: hidden;
-                    }
-                    video {
-                        width: 100%;
-                        height: 100%;
-                        background: #000;
-                    }
-                </style>
-            </head>
-            <body>
-                <video controls playsinline>
-                    <source src="$videoUrl">
-                    Ваш браузер не поддерживает встроенное видео.
-                </video>
-            </body>
-            </html>
-        """.trimIndent()
-    }
-}
-
-private fun String.toYouTubeEmbedUrl(): String? {
-    val normalized = trim()
-    if (normalized.isEmpty()) return null
-
-    val videoId = when {
-        normalized.contains("youtu.be/") ->
-            normalized.substringAfter("youtu.be/").substringBefore("?").substringBefore("&")
-        normalized.contains("youtube.com/watch") ->
-            Regex("[?&]v=([^&]+)").find(normalized)?.groupValues?.getOrNull(1)
-        normalized.contains("youtube.com/embed/") ->
-            normalized.substringAfter("youtube.com/embed/").substringBefore("?").substringBefore("&")
-        else -> null
-    }?.takeIf { it.isNotBlank() } ?: return null
-
-    return "https://www.youtube.com/embed/$videoId"
-}
+//private fun String.toYouTubeEmbedUrl(): String? {
+//    val normalized = trim()
+//    if (normalized.isEmpty()) return null
+//
+//    val videoId = when {
+//        normalized.contains("youtu.be/") ->
+//            normalized.substringAfter("youtu.be/").substringBefore("?").substringBefore("&")
+//        normalized.contains("youtube.com/watch") ->
+//            Regex("[?&]v=([^&]+)").find(normalized)?.groupValues?.getOrNull(1)
+//        normalized.contains("youtube.com/embed/") ->
+//            normalized.substringAfter("youtube.com/embed/").substringBefore("?").substringBefore("&")
+//        else -> null
+//    }?.takeIf { it.isNotBlank() } ?: return null
+//
+//    return "https://www.youtube.com/embed/$videoId"
+//}
 
 private fun formatSeconds(seconds: Int): String {
     val h = seconds / 3600
@@ -420,4 +434,79 @@ private fun formatDurationHuman(seconds: Int): String {
         m > 0 -> "${m} мин ${s} сек"
         else -> "${s} сек"
     }
+}
+
+
+
+@Composable
+private fun ExerciseVideoPreview(videoUrl: String) {
+    val context = LocalContext.current
+    val videoId = remember(videoUrl) { extractYouTubeId(videoUrl) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        if (videoId != null) {
+            val thumbnailUrl = "https://img.youtube.com/vi/$videoId/hqdefault.jpg"
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, videoUrl.toUri())
+                        context.startActivity(intent)
+                    }
+            ) {
+                AsyncImage(
+                    model = thumbnailUrl,
+                    contentDescription = "Превью видео",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                )
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = "Смотреть",
+                    tint = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier
+                        .size(64.dp)
+                        .align(Alignment.Center)
+                )
+                Text(
+                    text = "Смотреть на YouTube",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Видео недоступно", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+private fun extractYouTubeId(url: String): String? {
+    val patterns = listOf(
+        Regex("youtu\\.be/([\\w-]{11})"),
+        Regex("[?&]v=([\\w-]{11})"),
+        Regex("embed/([\\w-]{11})")
+    )
+    return patterns.firstNotNullOfOrNull { it.find(url)?.groupValues?.get(1) }
 }

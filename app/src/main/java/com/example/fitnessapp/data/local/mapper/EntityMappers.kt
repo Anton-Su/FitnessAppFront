@@ -9,7 +9,8 @@ fun ExerciseEntity.toDomain(): Exercise = Exercise(
     name = name,
     description = description,
     videoUrl = videoUrl,
-    type = type
+    type = type,
+    caloriesBurnt = caloriesBurnt
 )
 
 fun RecommendationEntity.toDomain(): Exercise = Exercise(
@@ -17,7 +18,8 @@ fun RecommendationEntity.toDomain(): Exercise = Exercise(
     name = name,
     description = description,
     videoUrl = videoUrl,
-    type = type
+    type = type,
+    caloriesBurnt = caloriesBurnt
 )
 
 fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
@@ -25,7 +27,8 @@ fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
     name = name,
     description = description,
     videoUrl = videoUrl,
-    type = type
+    type = type,
+    caloriesBurnt = caloriesBurnt
 )
 
 fun Exercise.toRecommendationEntity(userId: Int): RecommendationEntity = RecommendationEntity(
@@ -34,6 +37,7 @@ fun Exercise.toRecommendationEntity(userId: Int): RecommendationEntity = Recomme
     name = name,
     description = description,
     videoUrl = videoUrl,
-    type = type
+    type = type,
+    caloriesBurnt = caloriesBurnt
 )
 

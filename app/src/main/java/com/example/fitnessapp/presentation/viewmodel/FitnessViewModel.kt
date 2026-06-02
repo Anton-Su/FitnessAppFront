@@ -388,14 +388,14 @@ class FitnessViewModel(
         }
     }
 
-    suspend fun exportHistoryJson(): String? {
-        return try {
-            exportHistoryUseCase.invoke()
-        } catch (e: Exception) {
-            Log.e(TAG, "exportHistoryJson failed", e)
-            null
-        }
-    }
+//    suspend fun exportHistoryJson(): String? {
+//        return try {
+//            exportHistoryUseCase.invoke()
+//        } catch (e: Exception) {
+//            Log.e(TAG, "exportHistoryJson failed", e)
+//            null
+//        }
+//    }
 
     suspend fun exportRemoteHistoryJson(): String? {
         return try {
