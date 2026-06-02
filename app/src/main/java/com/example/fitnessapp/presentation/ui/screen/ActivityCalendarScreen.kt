@@ -1,12 +1,13 @@
 package com.example.fitnessapp.presentation.ui.screen
 
-import android.widget.Toast
 import android.util.Log
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,8 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,14 +32,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,7 +59,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
-import java.util.Locale
 
 /**
  * Экран календаря активности.
@@ -190,7 +190,7 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
                 )
 
                 Text(
-                    text = selectedMonth.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()) + " ${selectedMonth.year}",
+                    text = selectedMonth.month.getDisplayName(TextStyle.FULL_STANDALONE, LocalLocale.current.platformLocale) + " ${selectedMonth.year}",
                     style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold)
                 )
 
@@ -245,7 +245,7 @@ fun ActivityCalendarScreen(navController: NavHostController, viewModel: FitnessV
             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
         )
         Text(
-            text = "Сегодня: ${caloriesToday} kcal",
+            text = "Сегодня: $caloriesToday kcal",
             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
         )
         Button(
@@ -287,9 +287,9 @@ private fun DayChip(modifier: Modifier = Modifier, day: LocalDate, active: Boole
     ) {
         Text(text = day.dayOfMonth.toString(), fontWeight = FontWeight.Bold)
         if (calories != null && calories > 0) {
-            Text(text = "${calories}", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+            Text(text = "$calories", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
         } else {
-            Text(text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()), fontSize = 11.sp)
+            Text(text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, LocalLocale.current.platformLocale), fontSize = 11.sp)
         }
     }
 }
@@ -318,7 +318,7 @@ private fun DayCell(modifier: Modifier = Modifier, day: LocalDate, currentMonth:
             )
         )
         if (calories != null && calories > 0) {
-            Text(text = "${calories}", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+            Text(text = "$calories", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
         } else {
             Text(
                 text = if (active) "●" else "",
