@@ -40,6 +40,8 @@ import androidx.compose.material.icons.outlined.Delete
 import com.example.fitnessapp.presentation.util.EmailValidator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 
 /**
  * Экран настроек пользователя.
@@ -47,7 +49,6 @@ import androidx.compose.material3.TextButton
  */
 @Composable
 fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel) {
-    // Для корректного использования StateFlow в Compose нужно собрать их как State через collectAsState()
     val age by viewModel.age.collectAsState()
     val name by viewModel.name.collectAsState()
     val email by viewModel.email.collectAsState()
@@ -55,7 +56,7 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
     val weight by viewModel.weight.collectAsState()
     val gender by viewModel.gender.collectAsState()
     val statusActive by viewModel.statusActive.collectAsState()
-    val goal by viewModel.goal.collectAsState()
+    // val goal by viewModel.goal.collectAsState()
     val saveState by viewModel.saveProfileState.collectAsState()
 
     var nameInput by remember { mutableStateOf(name) }
@@ -63,7 +64,7 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
     var ageInput by remember { mutableStateOf(age.toString()) }
     var heightInput by remember { mutableStateOf(height.toString()) }
     var weightInput by remember { mutableStateOf(weight.toString()) }
-    var goalInput by remember { mutableStateOf(goal.toString()) }
+    // var goalInput by remember { mutableStateOf(goal.toString()) }
     var genderInput by remember { mutableStateOf(gender) }
 
     LaunchedEffect(gender) {
@@ -74,19 +75,19 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
     val ageVal = ageInput.toIntOrNull() ?: 0
     val heightVal = heightInput.toDoubleOrNull() ?: 0.0
     val weightVal = weightInput.toDoubleOrNull() ?: 0.0
-    val goalVal = goalInput.toIntOrNull() ?: 0
+   // val goalVal = goalInput.toIntOrNull() ?: 0
 
     val ageError = if (ageInput.isNotBlank() && (ageVal < 13 || ageVal > 120)) "Возраст: 13-120" else ""
     val heightError = if (heightInput.isNotBlank() && (heightVal < 100 || heightVal > 250)) "Рост: 100-250 см" else ""
     val weightError = if (weightInput.isNotBlank() && (weightVal < 30 || weightVal > 200)) "Вес: 30-200 кг" else ""
-    val goalError = if (goalInput.isNotBlank() && (goalVal < 0 || goalVal > 100)) "Цель: 0-100 кг" else ""
+   // val goalError = if (goalInput.isNotBlank() && (goalVal < 0 || goalVal > 100)) "Цель: 0-100 кг" else ""
     val emailError = if (emailInput.isNotBlank() && !EmailValidator.isValid(emailInput)) EmailValidator.getErrorMessage(emailInput) else ""
 
     val isValid = nameInput.isNotBlank() && emailInput.isNotBlank() && emailError.isEmpty() &&
                   ageInput.isNotBlank() && ageError.isEmpty() &&
                   heightInput.isNotBlank() && heightError.isEmpty() &&
-                  weightInput.isNotBlank() && weightError.isEmpty() &&
-                  goalInput.isNotBlank() && goalError.isEmpty()
+                  weightInput.isNotBlank() && weightError.isEmpty() // &&
+                //  goalInput.isNotBlank() && goalError.isEmpty()
 
     val deleteState by viewModel.deleteState.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -153,18 +154,24 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
 
                 // Body metrics card
                 Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(value = ageInput, onValueChange = { ageInput = it.filter(Char::isDigit).take(3) }, label = { Text("Возраст") }, modifier = Modifier.weight(1f), isError = ageError.isNotEmpty())
-                            OutlinedTextField(value = goalInput, onValueChange = { goalInput = it.filter { c -> c.isDigit() }.take(3) }, label = { Text("Цель (кг)") }, modifier = Modifier.weight(1f), isError = goalError.isNotEmpty())
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            if (ageError.isNotEmpty()) {
-                                Text(ageError, color = Color.Red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                            }
-                            if (goalError.isNotEmpty()) {
-                                Text(goalError, color = Color.Red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                            }
+                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(
+                            value = ageInput,
+                            onValueChange = {
+                                ageInput = it.filter(Char::isDigit).take(3)
+                            },
+                            label = { Text("Возраст") },
+                            modifier = Modifier.fillMaxWidth(0.5f),
+                            isError = ageError.isNotEmpty()
+                        )
+                        if (ageError.isNotEmpty()) {
+                            Text(
+                                text = ageError,
+                                color = Color.Red,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth(0.5f)
+                            )
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(value = heightInput, onValueChange = { heightInput = it.filter { c -> c.isDigit() || c == '.' }.take(6) }, label = { Text("Рост (см)") }, modifier = Modifier.weight(1f), isError = heightError.isNotEmpty())
@@ -196,7 +203,7 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
                                     val a = ageInput.toIntOrNull() ?: age
                                     val h = heightInput.toDoubleOrNull() ?: height
                                     val w = weightInput.toDoubleOrNull() ?: weight
-                                    val g = goalInput.toIntOrNull() ?: goal
+                                ///    val g = goalInput.toIntOrNull() ?: goal
                                     viewModel.updateUserProfile(
                                         name = nameInput,
                                         gender = genderInput,
@@ -204,8 +211,11 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
                                         age = a,
                                         height = h,
                                         weight = w,
-                                        goal = g
+                                        goal = 0
                                     )
+                                    navController.navigate("home") {
+                                        popUpTo("settings") { inclusive = true }
+                                    }
                                 },
                                 modifier = Modifier.weight(1f),
                                 enabled = isValid,
@@ -214,6 +224,7 @@ fun SettingsScreen(navController: NavHostController, viewModel: FitnessViewModel
                                     contentColor = Color.White,
                                     disabledContainerColor = Color.Gray
                                 )
+
                             ) {
                                 Text("Сохранить")
                             }

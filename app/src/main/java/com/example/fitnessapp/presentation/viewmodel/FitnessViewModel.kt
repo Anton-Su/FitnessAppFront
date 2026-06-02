@@ -157,7 +157,6 @@ class FitnessViewModel(
                     _saveProfileState.value = AuthUiState.Error("Что-то пошло не так у сервера")
                     return@launch
                 }
-
                 repo.updateUserProfile(
                     userId = userId,
                     firstName = name,
