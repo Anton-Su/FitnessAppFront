@@ -83,6 +83,13 @@ class FitnessViewModel(
     val weight: StateFlow<Double> = settingsDataStore.weightFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
 
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning = _isRunning.asStateFlow()
+
+    fun setExerciseRunning(value: Boolean) {
+        _isRunning.value = value
+    }
+
     val statusActive: StateFlow<Boolean> = settingsDataStore.statusActiveFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 

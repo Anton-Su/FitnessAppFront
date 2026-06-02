@@ -77,6 +77,8 @@ class SecondsCounterService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isRunning = false
+        sendStateUpdate()
         handler.removeCallbacksAndMessages(null)
     }
 
@@ -87,7 +89,11 @@ class SecondsCounterService : Service() {
             ACTION_START -> startCounting()
             ACTION_PAUSE -> pauseCounting()
             ACTION_RESUME -> resumeCounting()
-            ACTION_STOP -> stopSelf()
+            ACTION_STOP -> {
+                isRunning = false
+                sendStateUpdate()
+                stopSelf()
+            }
         }
         return START_STICKY
     }
@@ -96,16 +102,19 @@ class SecondsCounterService : Service() {
         seconds = 0
         isRunning = true
         sendSecondsTick()
+        sendStateUpdate()
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(NOTIF_ID, buildNotification(seconds))
     }
 
     private fun pauseCounting() {
         isRunning = false
+        sendStateUpdate()
     }
 
     private fun resumeCounting() {
         isRunning = true
+        sendStateUpdate()
     }
 
     private fun sendSecondsTick() {
@@ -114,6 +123,15 @@ class SecondsCounterService : Service() {
             setPackage(packageName)
         }
         sendBroadcast(tick)
+    }
+
+    private fun sendStateUpdate() {
+        val stateIntent = Intent(ACTION_STATE).apply {
+            putExtra(EXTRA_SECONDS, seconds)
+            putExtra(EXTRA_IS_RUNNING, isRunning)
+            setPackage(packageName)
+        }
+        sendBroadcast(stateIntent)
     }
 
     private fun buildNotification(seconds: Int): Notification {
@@ -154,6 +172,8 @@ class SecondsCounterService : Service() {
         const val ACTION_STOP = "com.example.fitnessapp.action.STOP_SECONDS"
 
         const val ACTION_TICK = "com.example.fitnessapp.action.SECONDS_TICK"
+        const val ACTION_STATE = "com.example.fitnessapp.action.SECONDS_STATE"
         const val EXTRA_SECONDS = "com.example.fitnessapp.extra.SECONDS"
+        const val EXTRA_IS_RUNNING = "com.example.fitnessapp.extra.IS_RUNNING"
     }
 }

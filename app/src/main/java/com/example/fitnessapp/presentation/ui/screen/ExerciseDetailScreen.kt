@@ -2,17 +2,11 @@ package com.example.fitnessapp.presentation.ui.screen
 import coil.compose.AsyncImage
 
 import androidx.compose.ui.graphics.Color
-import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.net.Uri
 import android.util.Log
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -80,7 +73,7 @@ fun ExerciseDetailScreen(
 ) {
     var exercise by remember { mutableStateOf<Exercise?>(null) }
     var seconds by remember { mutableStateOf(0) }
-    var isRunning by remember { mutableStateOf(false) }
+    val isRunning by viewModel.isRunning.collectAsState()
     var sessionSummary by remember { mutableStateOf<ExerciseSessionSummary?>(null) }
     val scrollState = rememberScrollState()
     val context = LocalContext.current
@@ -98,13 +91,25 @@ fun ExerciseDetailScreen(
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == SecondsCounterService.ACTION_TICK) {
-                    seconds = intent.getIntExtra(SecondsCounterService.EXTRA_SECONDS, 0)
+                when (intent?.action) {
+                    SecondsCounterService.ACTION_TICK -> {
+                        seconds = intent.getIntExtra(SecondsCounterService.EXTRA_SECONDS, 0)
+                        viewModel.setExerciseRunning(true)
+                    }
+                    SecondsCounterService.ACTION_STATE -> {
+                        seconds = intent.getIntExtra(SecondsCounterService.EXTRA_SECONDS, seconds)
+                        viewModel.setExerciseRunning(
+                            intent.getBooleanExtra(SecondsCounterService.EXTRA_IS_RUNNING, false)
+                        )
+                    }
                 }
             }
         }
 
-        val filter = IntentFilter(SecondsCounterService.ACTION_TICK)
+        val filter = IntentFilter().apply {
+            addAction(SecondsCounterService.ACTION_TICK)
+            addAction(SecondsCounterService.ACTION_STATE)
+        }
         ContextCompat.registerReceiver(
             context,
             receiver,
@@ -211,7 +216,7 @@ fun ExerciseDetailScreen(
             Button(
                 onClick = {
                     seconds = 0
-                    isRunning = true
+                    viewModel.setExerciseRunning(true)
                     sessionSummary = null
                     ContextCompat.startForegroundService(
                         context,
@@ -228,7 +233,7 @@ fun ExerciseDetailScreen(
 
             Button(
                 onClick = {
-                    isRunning = false
+                    viewModel.setExerciseRunning(false)
                     val secs = seconds
                     seconds = 0
                     val minutes = secs / 60.0
