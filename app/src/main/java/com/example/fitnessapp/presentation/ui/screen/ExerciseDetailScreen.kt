@@ -12,20 +12,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -43,9 +47,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -139,32 +145,104 @@ fun ExerciseDetailScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    ),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Text(
-                    text = exercise?.description ?: "Описание упражнения загружается с сервера...",
-                    modifier = Modifier.padding(18.dp),
-                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif)
-                )
-                Text(
-                    text = "Здесь могла бы быть реклама",
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                    style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                )
-                Text(
-                    text = exercise?.caloriesBurnt.toString() + " эффективных ккал в минуту",
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
-                )
+                Column(modifier = Modifier.padding(20.dp)) {
+
+                    // Заголовок секции описания
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(4.dp, 20.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary,
+                                    shape = RoundedCornerShape(2.dp)
+                                )
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Об упражнении",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 0.5.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+
+                    // Описание
+                    Text(
+                        text = exercise?.description ?: "Описание упражнения загружается с сервера...",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            lineHeight = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "${exercise?.caloriesBurnt} ккал / мин",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                            Text(
+                                text = "эффективный расход энергии",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.65f)
+                                )
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Здесь могла бы быть реклама, но мы особенные и не хотим её показывать. Вместо этого мы просто расскажем тебе, что она могла быть.",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 14.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                            letterSpacing = 0.3.sp
+                        )
+                    )
+                }
             }
-
             exercise?.let {
-                Text(text = it.type.uppercase(), style = MaterialTheme.typography.bodyMedium)
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),

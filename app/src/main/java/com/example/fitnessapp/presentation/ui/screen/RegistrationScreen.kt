@@ -108,7 +108,7 @@ fun RegistrationScreen(navController: NavHostController, viewModel: FitnessViewM
                     )
                 )
                 Text(
-                    text = "Укажи свои параметры, новичок",
+                    text = "Укажи свои параметры, салага",
                     style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif)
                 )
             }
