@@ -74,19 +74,9 @@ fun ExerciseDetailScreen(
     val weight = viewModel.weight.collectAsState().value
     Log.e("ExerciseDetail", "Current weight: $weight kg, base calories per second: ${exercise?.caloriesBurnt} kcal/s")
     val met = (exercise?.caloriesBurnt ?: 0.0).takeIf { it > 0.0 } ?: 0.0
-//    val met = remember(exercise?.type) {
-//        when (exercise?.type?.lowercase()) {
-//            "кардио", "cardio" -> 8.0
-//            "силовая", "strength" -> 6.0
-//            "йога", "yoga" -> 3.0
-//            "растяжка", "stretching" -> 2.0
-//            else -> 4.0
-//        }
-//    }
     val liveKcalPerMin = (met * weight * 3.5) / 200.0
     val liveKcal = (liveKcalPerMin * (seconds / 60.0)).coerceAtLeast(0.0)
-//    val liveKcal = (liveKcalPerSecond * seconds).coerceAtLeast(0.0)
-//    Log.e("ExerciseDetail", "Live kcal per second: $liveKcalPerSecond, total live kcal: $liveKcal")
+
     LaunchedEffect(exerciseId) {
         exercise = viewModel.loadExerciseById(exerciseId)
     }
@@ -131,157 +121,159 @@ fun ExerciseDetailScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Text(
-                text = exercise?.description ?: "Описание упражнения загружается с сервера...",
-                modifier = Modifier.padding(18.dp),
-                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif)
-            )
-            Text(
-                text = "Здесь могла бы быть реклама",
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-            )
-            Text(
-                text = exercise?.caloriesBurnt.toString() + " эффективных ккал в минуту",
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
-            )
-        }
-
-        exercise?.let {
-            Text(text = it.type.uppercase(), style = MaterialTheme.typography.bodyMedium)
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Text(
+                    text = exercise?.description ?: "Описание упражнения загружается с сервера...",
+                    modifier = Modifier.padding(18.dp),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif)
+                )
+                Text(
+                    text = "Здесь могла бы быть реклама",
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                )
+                Text(
+                    text = exercise?.caloriesBurnt.toString() + " эффективных ккал в минуту",
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                )
+            }
+
+            exercise?.let {
+                Text(text = it.type.uppercase(), style = MaterialTheme.typography.bodyMedium)
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
                 ) {
-                    Text(
-                        text = "Как надо",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
-                    )
-                    ExerciseVideoPreview(videoUrl = it.videoUrl)
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Как надо",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        )
+                        Log.e("ExerciseDetail", "Exercise video URL: ${it.videoUrl}")
+                        // Exercise video URL: https://www.youtube.com/watch?v=fdYHHvyT8kQ
+                        ExerciseVideoPreview(videoUrl = it.videoUrl)
+                    }
                 }
             }
-        }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = if (isRunning) "Секунды идут" else "Готово к старту",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
-                Text(
-                    text = formatSeconds(seconds),
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                )
-                Text(
-                    text = "Прямо сейчас: ${liveKcal.roundToInt()} ккал",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                )
-                Text(
-                    text = "Калории считаются в реальном времени.",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-
-        Button(
-            onClick = {
-                seconds = 0
-                isRunning = true
-                sessionSummary = null
-                ContextCompat.startForegroundService(
-                    context,
-                    Intent(context, SecondsCounterService::class.java).apply {
-                        action = SecondsCounterService.ACTION_START
-                    }
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isRunning
-        ) {
-            Text("Выполнить упражнение")
-        }
-
-        Button(
-            onClick = {
-                isRunning = false
-                val secs = seconds
-                seconds = 0
-                val minutes = secs / 60.0
-                val kcal = (liveKcalPerMin * minutes).coerceAtLeast(0.0)
-                val rounded = kcal.roundToInt()
-                if (secs > 0) {
-                    sessionSummary = ExerciseSessionSummary(durationSeconds = secs, calories = rounded)
-                }
-                if (fromRecommendation && secs > 0) {
-                    viewModel.markDoEverytimeTaskDone()
-                }
-
-                coroutineScope.launch {
-                    try {
-                        Log.e("ExerciseDetail", "Exercise completed: duration ${formatDurationHuman(secs)}, calories: $rounded kcal")
-                        withContext(Dispatchers.IO) { viewModel.addCalories(rounded) }
-                        CaloriesUploadScheduler.scheduleNext(context)
-                    } catch (_: Exception) {
-                        // Игнорируем ошибки расчёта/сохранения для UX без падений.
-                    }
-                }
-
-                ContextCompat.startForegroundService(
-                    context,
-                    Intent(context, SecondsCounterService::class.java).apply {
-                        action = SecondsCounterService.ACTION_STOP
-                    }
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = isRunning
-        ) {
-            Text("Закончить упражнение")
-        }
-
-        sessionSummary?.let { summary ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f))
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "Ты красавчик!",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        text = if (isRunning) "Секунды идут" else "Готово к старту",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        text = "Сжёг ${summary.calories} ккал за ${formatDurationHuman(summary.durationSeconds)}",
-                        style = MaterialTheme.typography.bodyLarge
+                        text = formatSeconds(seconds),
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     )
                     Text(
-                        text = "Айда ещё",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Прямо сейчас: ${liveKcal.roundToInt()} ккал",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Text(
+                        text = "Калории считаются в реальном времени.",
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
+            Button(
+                onClick = {
+                    seconds = 0
+                    isRunning = true
+                    sessionSummary = null
+                    ContextCompat.startForegroundService(
+                        context,
+                        Intent(context, SecondsCounterService::class.java).apply {
+                            action = SecondsCounterService.ACTION_START
+                        }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isRunning
+            ) {
+                Text("Выполнить упражнение")
+            }
+
+            Button(
+                onClick = {
+                    isRunning = false
+                    val secs = seconds
+                    seconds = 0
+                    val minutes = secs / 60.0
+                    val kcal = (liveKcalPerMin * minutes).coerceAtLeast(0.0)
+                    val rounded = kcal.roundToInt()
+                    if (secs > 0) {
+                        sessionSummary = ExerciseSessionSummary(durationSeconds = secs, calories = rounded)
+                    }
+                    if (fromRecommendation && secs > 0) {
+                        viewModel.markDoEverytimeTaskDone()
+                    }
+
+                    coroutineScope.launch {
+                        try {
+                            Log.e("ExerciseDetail", "Exercise completed: duration ${formatDurationHuman(secs)}, calories: $rounded kcal")
+                            withContext(Dispatchers.IO) { viewModel.addCalories(rounded) }
+                            CaloriesUploadScheduler.scheduleNext(context)
+                        } catch (_: Exception) {
+                            // Игнорируем ошибки расчёта/сохранения для UX без падений.
+                        }
+                    }
+
+                    ContextCompat.startForegroundService(
+                        context,
+                        Intent(context, SecondsCounterService::class.java).apply {
+                            action = SecondsCounterService.ACTION_STOP
+                        }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = isRunning
+            ) {
+                Text("Закончить упражнение")
+            }
+
+            sessionSummary?.let { summary ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Круто!",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        )
+                        Text(
+                            text = "Сжёг ${summary.calories} ккал за ${formatDurationHuman(summary.durationSeconds)}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = "Айда ещё",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
@@ -289,12 +281,8 @@ fun ExerciseDetailScreen(
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun ExerciseVideoPreview(videoUrl: String) {
-    Log.e("ExerciseVideo", "Original URL: $videoUrl")
-    val context = LocalContext.current
     val html = remember(videoUrl) {
-        val built = buildVideoPreviewHtml(videoUrl)
-        Log.e("ExerciseVideo", "HTML built, length: ${built.length}")
-        built
+        buildVideoPreviewHtml(videoUrl)
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -310,69 +298,26 @@ private fun ExerciseVideoPreview(videoUrl: String) {
                     setBackgroundColor(Color.TRANSPARENT)
                     settings.apply {
                         javaScriptEnabled = true
-                        javaScriptCanOpenWindowsAutomatically = true
                         domStorageEnabled = true
                         mediaPlaybackRequiresUserGesture = false
                         cacheMode = WebSettings.LOAD_DEFAULT
                         mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                         userAgentString = "Mozilla/5.0 (Linux; Android 12; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36"
-                        allowFileAccess = true
-                        allowContentAccess = true
-                        builtInZoomControls = true
                     }
                     webChromeClient = WebChromeClient()
-                    webViewClient = object : WebViewClient() {
-                        override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                            super.onPageStarted(view, url, favicon)
-                            Log.e("ExerciseVideo", "WebView loading: $url")
-                        }
-
-                        override fun onPageFinished(view: WebView?, url: String?) {
-                            super.onPageFinished(view, url)
-                            Log.e("ExerciseVideo", "WebView finished: $url")
-                        }
-
-                        override fun shouldInterceptRequest(view: WebView?, request: android.webkit.WebResourceRequest?): android.webkit.WebResourceResponse? {
-                            val url = request?.url.toString()
-                            Log.e("ExerciseVideo", "Resource request: $url, isForMainFrame: ${request?.isForMainFrame}")
-                            return super.shouldInterceptRequest(view, request)
-                        }
-
-                        override fun onReceivedError(view: WebView?, request: android.webkit.WebResourceRequest?, error: android.webkit.WebResourceError?) {
-                            super.onReceivedError(view, request, error)
-                            Log.e("ExerciseVideo", "WebView error: ${error?.description} for ${request?.url}")
-                        }
-
-                        override fun onReceivedHttpError(view: WebView?, request: android.webkit.WebResourceRequest?, errorResponse: android.webkit.WebResourceResponse?) {
-                            super.onReceivedHttpError(view, request, errorResponse)
-                            Log.e("ExerciseVideo", "HTTP error: statusCode=${errorResponse?.statusCode} for ${request?.url}")
-                        }
-                    }
+                    webViewClient = WebViewClient()
                 }
             },
             update = { webView ->
-                Log.e("ExerciseVideo", "Loading HTML into WebView")
-                Log.e("ExerciseVideo", "Context cache dir: ${context.cacheDir}")
-                try {
-                    val cacheDir = context.cacheDir
-                    val htmlFile = java.io.File(cacheDir, "video_player.html")
-                    htmlFile.writeText(html)
-                    Log.e("ExerciseVideo", "File written successfully: ${htmlFile.absolutePath}")
-                    val fileUrl = "file://" + htmlFile.absolutePath
-                    Log.e("ExerciseVideo", "Loading from: $fileUrl")
-                    webView.loadUrl(fileUrl)
-                    Log.e("ExerciseVideo", "loadUrl called successfully")
-                } catch (e: Exception) {
-                    Log.e("ExerciseVideo", "Error writing HTML file or loading: ${e.message}, ${e.stackTraceToString()}")
-                    Log.e("ExerciseVideo", "Falling back to loadDataWithBaseURL with empty baseURL")
-                    webView.loadDataWithBaseURL(
-                        "",
-                        html,
-                        "text/html",
-                        "UTF-8",
-                        null
-                    )
-                }
+                // ВАЖНО: baseUrl должен быть https://www.youtube.com, иначе
+                // YouTube IFrame API заблокирует запросы из-за file:// origin
+                webView.loadDataWithBaseURL(
+                    "https://www.youtube.com",
+                    html,
+                    "text/html",
+                    "UTF-8",
+                    null
+                )
             }
         )
     }
@@ -380,11 +325,8 @@ private fun ExerciseVideoPreview(videoUrl: String) {
 
 private fun buildVideoPreviewHtml(videoUrl: String): String {
     val embedUrl = videoUrl.toYouTubeEmbedUrl()
-    val sourceUrl = embedUrl ?: videoUrl
-    Log.e("ExerciseVideo", "Original: $videoUrl, Embed: $embedUrl, Source: $sourceUrl")
 
     return if (embedUrl != null) {
-        // Extract video ID from embed URL
         val videoId = embedUrl.substringAfterLast("/").substringBefore("?")
         """
             <!DOCTYPE html>
@@ -393,55 +335,17 @@ private fun buildVideoPreviewHtml(videoUrl: String): String {
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
-                    * { margin: 0; padding: 0; }
-                    html, body {
-                        width: 100%;
-                        height: 100%;
-                        background: transparent;
-                    }
-                    #player {
-                        width: 100%;
-                        height: 100%;
-                    }
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    html, body { width: 100%; height: 100%; background: transparent; }
+                    iframe { width: 100%; height: 100%; border: none; display: block; }
                 </style>
             </head>
             <body>
-                <div id="player"></div>
-                <script>
-                    var tag = document.createElement('script');
-                    tag.src = "https://www.youtube.com/iframe_api";
-                    var firstScriptTag = document.getElementsByTagName('script')[0];
-                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-                    
-                    var player;
-                    function onYouTubeIframeAPIReady() {
-                        console.log("YouTube API Ready, creating player for video: $videoId");
-                        player = new YT.Player('player', {
-                            height: '100%',
-                            width: '100%',
-                            videoId: '$videoId',
-                            events: {
-                                'onReady': onPlayerReady,
-                                'onError': onPlayerError
-                            },
-                            playerVars: {
-                                'fs': 1,
-                                'rel': 0,
-                                'modestbranding': 1,
-                                'controls': 1
-                            }
-                        });
-                    }
-                    
-                    function onPlayerReady(event) {
-                        console.log("Player ready");
-                        event.target.playVideo();
-                    }
-                    
-                    function onPlayerError(event) {
-                        console.error("Player error:", event.data);
-                    }
-                </script>
+                <iframe
+                    src="https://www.youtube.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1"
+                    allowfullscreen
+                    allow="autoplay; encrypted-media; fullscreen">
+                </iframe>
             </body>
             </html>
         """.trimIndent()
@@ -469,7 +373,7 @@ private fun buildVideoPreviewHtml(videoUrl: String): String {
             </head>
             <body>
                 <video controls playsinline>
-                    <source src="$sourceUrl">
+                    <source src="$videoUrl">
                     Ваш браузер не поддерживает встроенное видео.
                 </video>
             </body>
@@ -482,33 +386,17 @@ private fun String.toYouTubeEmbedUrl(): String? {
     val normalized = trim()
     if (normalized.isEmpty()) return null
 
-    Log.e("ExerciseVideo", "Parsing URL: $normalized")
-
     val videoId = when {
-        normalized.contains("youtu.be/") -> {
-            val id = normalized.substringAfter("youtu.be/").substringBefore("?").substringBefore("&")
-            Log.e("ExerciseVideo", "youtu.be format, ID: $id")
-            id
-        }
-        normalized.contains("youtube.com/watch") -> {
-            val id = Regex("[?&]v=([^&]+)").find(normalized)?.groupValues?.getOrNull(1)
-            Log.e("ExerciseVideo", "youtube.com/watch format, ID: $id")
-            id
-        }
-        normalized.contains("youtube.com/embed/") -> {
-            val id = normalized.substringAfter("youtube.com/embed/").substringBefore("?").substringBefore("&")
-            Log.e("ExerciseVideo", "youtube.com/embed format, ID: $id")
-            id
-        }
-        else -> {
-            Log.e("ExerciseVideo", "URL format not recognized")
-            null
-        }
+        normalized.contains("youtu.be/") ->
+            normalized.substringAfter("youtu.be/").substringBefore("?").substringBefore("&")
+        normalized.contains("youtube.com/watch") ->
+            Regex("[?&]v=([^&]+)").find(normalized)?.groupValues?.getOrNull(1)
+        normalized.contains("youtube.com/embed/") ->
+            normalized.substringAfter("youtube.com/embed/").substringBefore("?").substringBefore("&")
+        else -> null
     }?.takeIf { it.isNotBlank() } ?: return null
 
-    val result = "https://www.youtube.com/embed/$videoId"
-    Log.e("ExerciseVideo", "Final embed URL: $result")
-    return result
+    return "https://www.youtube.com/embed/$videoId"
 }
 
 private fun formatSeconds(seconds: Int): String {
@@ -533,4 +421,3 @@ private fun formatDurationHuman(seconds: Int): String {
         else -> "${s} сек"
     }
 }
-
