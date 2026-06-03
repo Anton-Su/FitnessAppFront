@@ -217,6 +217,7 @@ class FitnessViewModel(
                     return@launch
                 }
                 val res = deleteUserUseCase?.invoke(userId) ?: Result.failure(Exception("No repo"))
+                Log.e(TAG, "deleteUser result: $res")
                 if (res.isSuccess) {
                     // clear local tokens and simple settings
                     settingsDataStore.setUserId(0)

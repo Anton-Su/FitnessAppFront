@@ -24,7 +24,7 @@ class AuthRepositoryImpl(
     override suspend fun register(firstName: String, email: String, age: Int, password: String): Result<Int> {
         return try {
             // Server expects username/email/password — use LoginRequestDto for compatibility
-            val request = LoginRequestDto(username = firstName, password = password)
+            val request = LoginRequestDto(username = email, password = password)
             val response: LoginResponse = api.register(request)
             // prefer server user_id, fallback to user.id or 0
             val id = when {
